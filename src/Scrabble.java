@@ -6,7 +6,6 @@ import java.io.*;
 import java.util.Arrays;
 
 public class Scrabble extends JFrame implements KeyListener {
-  public static boolean foobar;
   public static boolean giveUp;
   public static boolean useBlank = true;
   public static String[] dict;
@@ -30,29 +29,13 @@ public class Scrabble extends JFrame implements KeyListener {
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
   };
-  private final Interface draw;
+  private final Gui gui;
 
   public Scrabble() {
-    this.draw = new Interface();
+    this.gui = new Gui();
     addKeyListener(this);
     setFocusable(true);
     setFocusTraversalKeysEnabled(false);
-    Thread animationThread =
-        new Thread(
-            () -> {
-              while (true) {
-                repaint();
-                try {
-                  Thread.sleep(30);
-                } catch (Exception ignored) {
-                }
-                if (foobar) {
-                  foobar = false;
-                  setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-                }
-              }
-            });
-    animationThread.start();
   }
 
   public static void main(String[] args) {
@@ -63,7 +46,7 @@ public class Scrabble extends JFrame implements KeyListener {
           frame.setResizable(false);
           frame.setMinimumSize(new Dimension(750, 750));
           frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-          frame.getContentPane().add(frame.draw);
+          frame.getContentPane().add(frame.gui);
           frame.pack();
           frame.setLocationRelativeTo(frame);
           frame.setVisible(true);
@@ -90,6 +73,7 @@ public class Scrabble extends JFrame implements KeyListener {
     anagram.loadD(dict);
 
     rated = new boolean[15][15];
+    (new Scrabble()).onEnter();
   }
 
   public static int countLines(String filename) throws IOException {
@@ -110,7 +94,7 @@ public class Scrabble extends JFrame implements KeyListener {
     }
   }
 
-  public static boolean validBoard(String[] move) {
+  public boolean validBoard(String[] move) {
     char[][] boardT = new char[15][15];
 
     for (int i = 0; i < board.length; i++) {
@@ -173,14 +157,14 @@ public class Scrabble extends JFrame implements KeyListener {
     return true;
   }
 
-  public static String[][] joinArray(String[][] array1, String[][] array2, int l) {
+  public String[][] joinArray(String[][] array1, String[][] array2, int l) {
     String[][] array3 = new String[array1.length + array2.length][l];
     System.arraycopy(array1, 0, array3, 0, array1.length);
     System.arraycopy(array2, 0, array3, array1.length, array2.length);
     return array3;
   }
 
-  public static String[][] findWord(int[][] s, String[] Hand) {
+  public String[][] findWord(int[][] s, String[] Hand) {
     int gapL = Math.abs(s[0][0] - s[1][0]) + Math.abs(s[0][1] - s[1][1]) + 1;
     String[] location = new String[gapL];
     if (s[0][1] - s[1][1] == 0) { // Horizontal
@@ -246,11 +230,11 @@ public class Scrabble extends JFrame implements KeyListener {
     return wordScores;
   }
 
-  public static void onEnter() {
+  public void onEnter() {
     String[] arr = {"check"};
     if (!validBoard(arr)) {
-      Interface.message = "Current board not valid";
-      foobar = true;
+      gui.message = "Current board not valid";
+      setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     }
     System.arraycopy(hand, 0, handT, 0, hand.length);
@@ -263,16 +247,16 @@ public class Scrabble extends JFrame implements KeyListener {
         }
       }
     }
-    Interface.message = "Searching for words...";
-    Interface.handSelect = -1;
+    gui.message = "Searching for words...";
+    gui.handSelect = -1;
     double timer1 = System.currentTimeMillis();
 
     int blankL = -1;
     for (int i = 0; i < hand.length; i++) { // Getting blank location
       if (hand[i].equals("_")) {
         if (blankL != -1) {
-          Interface.message = "Only one blank allowed";
-          foobar = true;
+          gui.message = "Only one blank allowed";
+          setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
           return;
         }
         blankL = i;
@@ -297,9 +281,9 @@ public class Scrabble extends JFrame implements KeyListener {
     }
     String message = "";
     if (validWord1.length == 0) {
-      Interface.message = "No words found";
-      foobar = true;
+      gui.message = "No words found";
       System.arraycopy(handT, 0, hand, 0, hand.length);
+      setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     } else {
       Arrays.sort(
@@ -336,7 +320,7 @@ public class Scrabble extends JFrame implements KeyListener {
         }
       }
     }
-    Interface.message = message;
+    gui.message = message;
 
     double timer2 = System.currentTimeMillis();
     System.out.println("1 took " + anagram.one);
@@ -349,36 +333,37 @@ public class Scrabble extends JFrame implements KeyListener {
     anagram.three = 0;
     anagram.four = 0;
     System.out.println("Took " + (timer2 - timer1) + " ms");
-    if (Interface.message.equals("Cancelled ")) {
-      Interface.message += "after " + (timer2 - timer1) + " ms";
+    if (gui.message.equals("Cancelled ")) {
+      gui.message += "after " + (timer2 - timer1) + " ms";
     } else {
-      Interface.message += "in " + (timer2 - timer1) + " ms";
+      gui.message += "in " + (timer2 - timer1) + " ms";
     }
-    System.out.println(Interface.message);
-    foobar = true;
+    System.out.println(gui.message);
     System.arraycopy(handT, 0, hand, 0, hand.length);
+    setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+    gui.repaint();
   }
 
   @Override
   public void keyTyped(KeyEvent e) {
-    if (Interface.selected[0] != -1) {
+    if (gui.selected[0] != -1) {
       if (Character.isAlphabetic(e.getKeyChar())) {
-        board[Interface.selected[1]][Interface.selected[0]] = Character.toUpperCase(e.getKeyChar());
-        rated[Interface.selected[1]][Interface.selected[0]] = true;
+        board[gui.selected[1]][gui.selected[0]] = Character.toUpperCase(e.getKeyChar());
+        rated[gui.selected[1]][gui.selected[0]] = true;
       }
       if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-        board[Interface.selected[1]][Interface.selected[0]] = ' ';
-        rated[Interface.selected[1]][Interface.selected[0]] = false;
+        board[gui.selected[1]][gui.selected[0]] = ' ';
+        rated[gui.selected[1]][gui.selected[0]] = false;
       }
     }
-    if (Interface.handSelect != -1) {
+    if (gui.handSelect != -1) {
       if (Character.isAlphabetic(e.getKeyChar()))
-        hand[Interface.handSelect] = (e.getKeyChar() + "").toUpperCase();
+        hand[gui.handSelect] = (e.getKeyChar() + "").toUpperCase();
       if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-        hand[Interface.handSelect] = "";
+        hand[gui.handSelect] = "";
       }
       if (e.getKeyChar() == '-') {
-        hand[Interface.handSelect] = "_";
+        hand[gui.handSelect] = "_";
       }
     }
     repaint();
@@ -388,28 +373,28 @@ public class Scrabble extends JFrame implements KeyListener {
   public void keyPressed(KeyEvent e) {
     if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
       setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      (new Thread(Scrabble::onEnter)).start();
+      (new Thread(this::onEnter)).start();
     }
     if (e.getExtendedKeyCode() == KeyEvent.VK_SHIFT) {
       useBlank = false;
       setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      (new Thread(Scrabble::onEnter)).start();
+      (new Thread(this::onEnter)).start();
     }
-    if (Interface.handSelect == -1) {
-      if (e.getExtendedKeyCode() == KeyEvent.VK_LEFT && Interface.selected[0] > 0) {
-        Interface.selected[0]--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_RIGHT && Interface.selected[0] < 14) {
-        Interface.selected[0]++;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_UP && Interface.selected[1] > 0) {
-        Interface.selected[1]--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && Interface.selected[1] < 14) {
-        Interface.selected[1]++;
+    if (gui.handSelect == -1) {
+      if (e.getExtendedKeyCode() == KeyEvent.VK_LEFT && gui.selected[0] > 0) {
+        gui.selected[0]--;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_RIGHT && gui.selected[0] < 14) {
+        gui.selected[0]++;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_UP && gui.selected[1] > 0) {
+        gui.selected[1]--;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && gui.selected[1] < 14) {
+        gui.selected[1]++;
       }
     } else {
-      if (e.getExtendedKeyCode() == KeyEvent.VK_UP && Interface.handSelect > 0) {
-        Interface.handSelect--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && Interface.handSelect < 6) {
-        Interface.handSelect++;
+      if (e.getExtendedKeyCode() == KeyEvent.VK_UP && gui.handSelect > 0) {
+        gui.handSelect--;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && gui.handSelect < 6) {
+        gui.handSelect++;
       }
     }
     if (e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) giveUp = true;

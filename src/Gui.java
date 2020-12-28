@@ -4,10 +4,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 
-public class Interface extends JComponent implements MouseListener, MouseMotionListener {
-  public static int[] selected = {-1, -1};
-  public static int handSelect = -1;
-  public static String message = "";
+public class Gui extends JComponent implements MouseListener, MouseMotionListener {
+  public int[] selected = {-1, -1};
+  public int handSelect = -1;
+  public String message = "";
   boolean foobar = true;
   int x, y;
 
