@@ -1,6 +1,6 @@
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
-public class Rate {
-  public static char[][] bonuses = {
+public class Rater {
+  public static final char[][] BONUSES = {
     {'W', ' ', ' ', 'l', ' ', ' ', ' ', 'W', ' ', ' ', ' ', 'l', ' ', ' ', 'W'},
     {' ', 'w', ' ', ' ', ' ', 'L', ' ', ' ', ' ', 'L', ' ', ' ', ' ', 'w', ' '},
     {' ', ' ', 'w', ' ', ' ', ' ', 'l', ' ', 'l', ' ', ' ', ' ', 'w', ' ', ' '},
@@ -18,7 +18,7 @@ public class Rate {
     {'W', ' ', ' ', 'l', ' ', ' ', ' ', 'W', ' ', ' ', ' ', 'l', ' ', ' ', 'W'}
   };
 
-  public static int rateWord(String[][] word, char[] location) {
+  private int rateWord(String[][] word, char[] location) {
     int[] rating = countPoints(word);
     int total = 0;
 
@@ -44,30 +44,30 @@ public class Rate {
     return total;
   }
 
-  public static int rateLetter(String[] c, int base) {
+  private int rateLetter(String[] c, int base) {
     if ("y".equals(c[4])) {
       return 0;
     }
     if ("n".equals(c[3])) {
       return base;
     }
-    if (bonuses[Integer.parseInt(c[1])][Integer.parseInt(c[2])] == 'l') {
+    if (BONUSES[Integer.parseInt(c[1])][Integer.parseInt(c[2])] == 'l') {
       return base * 2;
     }
-    if (bonuses[Integer.parseInt(c[1])][Integer.parseInt(c[2])] == 'L') {
+    if (BONUSES[Integer.parseInt(c[1])][Integer.parseInt(c[2])] == 'L') {
       return base * 3;
     }
     return base;
   }
 
-  public static int wordMultiplier(String[][] c) {
+  private int wordMultiplier(String[][] c) {
     int m = 1;
     for (String[] strings : c) {
       if (!"n".equals(strings[3])) {
-        if (bonuses[Integer.parseInt(strings[1])][Integer.parseInt(strings[2])] == 'w') {
+        if (BONUSES[Integer.parseInt(strings[1])][Integer.parseInt(strings[2])] == 'w') {
           m *= 2;
         }
-        if (bonuses[Integer.parseInt(strings[1])][Integer.parseInt(strings[2])] == 'W') {
+        if (BONUSES[Integer.parseInt(strings[1])][Integer.parseInt(strings[2])] == 'W') {
           m *= 3;
         }
       }
@@ -75,7 +75,7 @@ public class Rate {
     return m;
   }
 
-  public static int[] countPoints(String[][] word) {
+  private int[] countPoints(String[][] word) {
     int[] rating = new int[word.length];
     for (int i = 0; i < word.length; i++) {
       switch (word[i][0].charAt(0)) {
@@ -125,16 +125,16 @@ public class Rate {
     return rating;
   }
 
-  public static int rate(String[] location) {
+  public int rate(String[] location) {
     char[][] boardT = new char[15][15];
     boolean[][] rated = new boolean[15][15];
     int rating = 0;
 
     for (int i = 0; i < 15; i++) {
-      System.arraycopy(Scrabble.board[i], 0, boardT[i], 0, 15);
+      System.arraycopy(Board.board[i], 0, boardT[i], 0, 15);
     }
     for (int i = 0; i < 15; i++) {
-      System.arraycopy(Scrabble.rated[i], 0, rated[i], 0, 15);
+      System.arraycopy(Board.rated[i], 0, rated[i], 0, 15);
     }
     for (int i = 0; i < location[0].length(); i++) {
       if ("h".equals(location[3])) {
@@ -163,11 +163,11 @@ public class Rate {
     }
 
     // Copy rows of original board
-    System.arraycopy(Scrabble.board, 0, oldLines, 0, 15);
+    System.arraycopy(Board.board, 0, oldLines, 0, 15);
     // Copy columns of original board
     for (int i = 15; i < 30; i++) {
       for (int j = 0; j < 15; j++) {
-        oldLines[i][j] = Scrabble.board[j][i - 15];
+        oldLines[i][j] = Board.board[j][i - 15];
       }
     }
 

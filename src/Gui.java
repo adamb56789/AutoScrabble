@@ -66,7 +66,7 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
         if (i == 7 && j == 7) {
           g.drawImage(start, j * 44 + 4, i * 44 + 4, this);
         } else {
-          switch (Rate.bonuses[j][i]) {
+          switch (Rater.BONUSES[j][i]) {
             case 'W' -> g.drawImage(tripleWord, j * 44 + 4, i * 44 + 4, this);
             case 'w' -> g.drawImage(doubleWord, j * 44 + 4, i * 44 + 4, this);
             case 'L' -> g.drawImage(tripleLetter, j * 44 + 4, i * 44 + 4, this);
@@ -79,23 +79,23 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
     // Draw the tiles
     for (int i = 0; i < 15; i++) {
       for (int j = 0; j < 15; j++) {
-        if (Scrabble.board[j][i] != ' ') {
+        if (Board.board[j][i] != ' ') {
           g.drawImage(tile, i * 44 + 8, j * 44 + 8, this);
           g2.setFont(large);
-          if (Character.isUpperCase(Scrabble.board[j][i])) {
-            g2.drawString(Scrabble.board[j][i] + "", i * 44 + 12, j * 44 + 40);
-          } else if (Character.isLowerCase(Scrabble.board[j][i])) {
+          if (Character.isUpperCase(Board.board[j][i])) {
+            g2.drawString(Board.board[j][i] + "", i * 44 + 12, j * 44 + 40);
+          } else if (Character.isLowerCase(Board.board[j][i])) {
             g2.setFont(small);
-            g2.drawString("(" + Scrabble.board[j][i] + ")", i * 44 + 18, j * 44 + 32);
+            g2.drawString("(" + Board.board[j][i] + ")", i * 44 + 18, j * 44 + 32);
             g2.drawString("0", i * 44 + 37, j * 44 + 42);
           }
           g2.setFont(small);
           int nx = 37;
-          if (Scrabble.board[j][i] == 'Q' || Scrabble.board[j][i] == 'Z') {
+          if (Board.board[j][i] == 'Q' || Board.board[j][i] == 'Z') {
             nx = 33;
           }
           int ny = 42;
-          switch (Scrabble.board[j][i]) {
+          switch (Board.board[j][i]) {
             case 'A':
             case 'E':
             case 'I':
@@ -145,22 +145,22 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
     // Draw the hand
     int sp = 6;
     int so = 0;
-    for (int i = 0; i < Scrabble.hand.length; i++) {
-      if (!"".equals(Scrabble.hand[i])) {
+    for (int i = 0; i < Board.hand.length; i++) {
+      if (!"".equals(Board.hand[i])) {
         try {
-          if ("_".equals(Scrabble.hand[i]) || Character.isAlphabetic(Scrabble.hand[i].charAt(0))) {
+          if ("_".equals(Board.hand[i]) || Character.isAlphabetic(Board.hand[i].charAt(0))) {
             g.drawImage(tile, 700 - sp, 20 + i * 44 - so, this);
             g2.setFont(large);
-            if (Character.isUpperCase(Scrabble.hand[i].charAt(0))) {
-              g2.drawString(Scrabble.hand[i] + "", 704 - sp, i * 44 + 54 - so);
+            if (Character.isUpperCase(Board.hand[i].charAt(0))) {
+              g2.drawString(Board.hand[i] + "", 704 - sp, i * 44 + 54 - so);
             }
             g2.setFont(small);
             int nx = 29 - sp;
-            if ("Q".equals(Scrabble.hand[i]) || "Z".equals(Scrabble.hand[i])) {
+            if ("Q".equals(Board.hand[i]) || "Z".equals(Board.hand[i])) {
               nx = 25 - sp;
             }
             int ny = 42 + 12 - so;
-            switch (Scrabble.hand[i].charAt(0)) {
+            switch (Board.hand[i].charAt(0)) {
               case 'A':
               case 'E':
               case 'I':
@@ -246,12 +246,12 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
       handSelect = -1;
     }
     if (e.getButton() == 3 && selected[0] != -1) {
-      if (Character.isUpperCase(Scrabble.board[selected[1]][selected[0]])) {
-        Scrabble.board[selected[1]][selected[0]] =
-            Character.toLowerCase(Scrabble.board[selected[1]][selected[0]]);
+      if (Character.isUpperCase(Board.board[selected[1]][selected[0]])) {
+        Board.board[selected[1]][selected[0]] =
+            Character.toLowerCase(Board.board[selected[1]][selected[0]]);
       } else {
-        Scrabble.board[selected[1]][selected[0]] =
-            Character.toUpperCase(Scrabble.board[selected[1]][selected[0]]);
+        Board.board[selected[1]][selected[0]] =
+            Character.toUpperCase(Board.board[selected[1]][selected[0]]);
       }
     }
     repaint();

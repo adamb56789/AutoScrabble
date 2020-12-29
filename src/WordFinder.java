@@ -1,38 +1,26 @@
-public class anagram {
-  public static int[][] letterCount;
-  public static String[][] characters;
-  public static String[] dict;
-  public static int[] dictLength;
-  public static double one = 0;
-  public static double two = 0;
-  public static double three = 0;
-  public static double four = 0;
+public class WordFinder {
+  private String[][] characters;
+  private String[] dictionary;
 
-  public static void loadD(String[] d) {
-    dictLength = new int[d.length];
-    dict = Scrabble.dict;
-    letterCount = new int[d.length][26];
-    for (int i = 0; i < d.length; i++) { // counting the number of each letter
-      int l = d[i].length();
-      for (int j = 0; j < l; j++) {
-        letterCount[i][Character.getNumericValue(d[i].charAt(j)) - 10]++;
-      }
-      dictLength[i] = d[i].length();
-    }
+  public WordFinder(String[] dictionary) {
+    loadDictionary(dictionary);
+  }
 
+  public void loadDictionary(String[] dict) {
+    this.dictionary = dict;
     // Separating word into characters
-    characters = new String[d.length][1];
-    for (int i = 0; i < d.length; i++) {
-      int l = d[i].length();
+    characters = new String[dict.length][1];
+    for (int i = 0; i < dict.length; i++) {
+      int l = dict[i].length();
       characters[i] = new String[l];
       for (int j = 0; j < l; j++) {
-        characters[i][j] = d[i].charAt(j) + "";
+        characters[i][j] = dict[i].charAt(j) + "";
       }
     }
   }
 
-  public static boolean isWord(String s) {
-    for (String value : dict) {
+  public boolean isWord(String s) {
+    for (String value : dictionary) {
       if (s.toUpperCase().equals(value)) {
         return true;
       }
@@ -40,18 +28,17 @@ public class anagram {
     return false;
   }
 
-  public static String[][] getWords(String[] l, String[] h, int mode) {
+  public String[][] getWords(String[] l, String[] h, int mode) {
     // Counting max possible length of words, possible future sorting???
 
-    String[][] validList1 = new String[dict.length][2];
+    String[][] validList1 = new String[dictionary.length][2];
     int validList1n = 0;
     int n = 0;
-    double t1 = System.nanoTime(); // Section 1
-    for (int i = 0; i < dict.length; i++) { // Getting words that contain the specification
-      for (int j = 0; j < l.length - dict[i].length() + 1; j++) {
+    for (int i = 0; i < dictionary.length; i++) { // Getting words that contain the specification
+      for (int j = 0; j < l.length - dictionary[i].length() + 1; j++) {
         boolean validWord = true;
         int m = 0;
-        for (int k = j; k < dict[i].length() + j; k++) {
+        for (int k = j; k < dictionary[i].length() + j; k++) {
           if (!l[k].equals("")) {
             m += 1;
           }
@@ -74,15 +61,13 @@ public class anagram {
           }
         }
         if (validWord && m != 0) {
-          validList1[n][0] = dict[i];
+          validList1[n][0] = dictionary[i];
           validList1[n][1] = j + "";
           validList1n++;
           n++;
         }
       }
     }
-    one += (System.nanoTime() - t1) / 1000000;
-    double t2 = System.nanoTime(); // Section 2
     int[] handCount = new int[27];
 
     for (String s : h) {
@@ -91,8 +76,6 @@ public class anagram {
       } catch (Exception ignored) {
       }
     }
-    two += (System.nanoTime() - t2) / 1000000;
-    double t3 = System.nanoTime(); // Section 3
     String[][] validList2temp = new String[validList1n][2];
     if (mode == 2) validList2temp = new String[validList1n * 26][2];
     int validList2n = 0;
@@ -191,12 +174,8 @@ public class anagram {
 
     String[][] validList2 = new String[validList2n][2];
     System.arraycopy(validList2temp, 0, validList2, 0, validList2n);
-    three += (System.nanoTime() - t3) / 1000000;
-    double t4 = System.nanoTime(); // Section 4
     String[][] validList3temp = new String[validList2n][2];
     int validList3n = 0;
-    // <editor-fold defaultstate="collapsed" desc="Removing words that conflict with nearby
-    // letters">
     for (int i = 0; i < validList2n; i++) {
       boolean valid = true;
 
@@ -219,8 +198,6 @@ public class anagram {
         validList3n++;
       }
     }
-    // </editor-fold>
-    four += (System.nanoTime() - t4) / 1000000;
     String[][] validList3 = new String[validList3n][2];
     System.arraycopy(validList3temp, 0, validList3, 0, validList3n);
     return validList3;

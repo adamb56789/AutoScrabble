@@ -5,13 +5,13 @@ import java.awt.event.KeyListener;
 import java.io.*;
 import java.util.Arrays;
 
-public class Scrabble extends JFrame implements KeyListener {
+public class Board extends JFrame implements KeyListener {
   public static boolean giveUp;
   public static boolean useBlank = true;
-  public static String[] dict;
+  public static String[] dictionary;
   public static String[] hand = {"A", "B", "C", "D", "E", "F", "G"};
   public static String[] handT = new String[26 * 4];
-  public static boolean[][] rated;
+  public static boolean[][] rated = new boolean[15][15];
   public static char[][] board = {
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
@@ -30,50 +30,32 @@ public class Scrabble extends JFrame implements KeyListener {
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
   };
   private final Gui gui;
+  private final WordFinder wordFinder;
 
-  public Scrabble() {
-    this.gui = new Gui();
+  public Board(Gui gui) {
+    this.gui = gui;
     addKeyListener(this);
     setFocusable(true);
     setFocusTraversalKeysEnabled(false);
-  }
-
-  public static void main(String[] args) {
-    javax.swing.SwingUtilities.invokeLater(
-        () -> {
-          Scrabble frame = new Scrabble();
-          frame.setTitle("Scrabble Perfect");
-          frame.setResizable(false);
-          frame.setMinimumSize(new Dimension(750, 750));
-          frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-          frame.getContentPane().add(frame.gui);
-          frame.pack();
-          frame.setLocationRelativeTo(frame);
-          frame.setVisible(true);
-          frame.getContentPane().setBackground(Color.decode("#F3F3F3"));
-        });
-
     int lines = 0;
     try {
       lines = countLines("Dictionary.txt") + 1;
       System.out.println("There are " + lines + " words in the dictionary.");
     } catch (IOException ignored) {
     }
-    dict = new String[lines];
+    dictionary = new String[lines];
+
+    FileReader fR;
     try {
-      FileReader fR = new FileReader("Dictionary.txt");
-      try (BufferedReader bR = new BufferedReader(fR)) {
-        for (int i = 0; i < lines; i++) {
-          dict[i] = bR.readLine();
-        }
+      fR = new FileReader("Dictionary.txt");
+      BufferedReader bR = new BufferedReader(fR);
+      for (int i = 0; i < lines; i++) {
+        dictionary[i] = bR.readLine();
       }
-    } catch (Exception ignored) {
+    } catch (IOException e) {
+      e.printStackTrace();
     }
-
-    anagram.loadD(dict);
-
-    rated = new boolean[15][15];
-    (new Scrabble()).onEnter();
+    wordFinder = new WordFinder(dictionary);
   }
 
   public static int countLines(String filename) throws IOException {
@@ -145,7 +127,7 @@ public class Scrabble extends JFrame implements KeyListener {
             }
             j += f;
 
-            if (!anagram.isWord(word.toString())) {
+            if (!wordFinder.isWord(word.toString())) {
               return false;
             }
           }
@@ -211,8 +193,9 @@ public class Scrabble extends JFrame implements KeyListener {
       } catch (Exception ignored) {
       }
     }
-    String[][] validWords = anagram.getWords(location, Hand, mode);
+    String[][] validWords = wordFinder.getWords(location, Hand, mode);
     String[][] wordScores = new String[validWords.length][5];
+    var rater = new Rater();
     for (int i = 0; i < validWords.length; i++) {
       wordScores[i][0] = validWords[i][0];
 
@@ -225,7 +208,7 @@ public class Scrabble extends JFrame implements KeyListener {
         wordScores[i][2] = (s[0][1] + validWords[i][1]) + "";
         wordScores[i][3] = "v";
       }
-      wordScores[i][4] = Rate.rate(wordScores[i]) + "";
+      wordScores[i][4] = rater.rate(wordScores[i]) + "";
     }
     return wordScores;
   }
@@ -249,7 +232,7 @@ public class Scrabble extends JFrame implements KeyListener {
     }
     gui.message = "Searching for words...";
     gui.handSelect = -1;
-    double timer1 = System.currentTimeMillis();
+    double startTime = System.currentTimeMillis();
 
     int blankL = -1;
     for (int i = 0; i < hand.length; i++) { // Getting blank location
@@ -322,21 +305,12 @@ public class Scrabble extends JFrame implements KeyListener {
     }
     gui.message = message;
 
-    double timer2 = System.currentTimeMillis();
-    System.out.println("1 took " + anagram.one);
-    System.out.println("2 took " + anagram.two);
-    System.out.println("3 took " + anagram.three);
-    System.out.println("4 took " + anagram.four);
-    System.out.println("Total is " + (anagram.one + anagram.two + anagram.three + anagram.four));
-    anagram.one = 0;
-    anagram.two = 0;
-    anagram.three = 0;
-    anagram.four = 0;
-    System.out.println("Took " + (timer2 - timer1) + " ms");
+    double finishTime = System.currentTimeMillis();
+    System.out.println("Took " + (finishTime - startTime) + " ms");
     if (gui.message.equals("Cancelled ")) {
-      gui.message += "after " + (timer2 - timer1) + " ms";
+      gui.message += "after " + (finishTime - startTime) + " ms";
     } else {
-      gui.message += "in " + (timer2 - timer1) + " ms";
+      gui.message += "in " + (finishTime - startTime) + " ms";
     }
     System.out.println(gui.message);
     System.arraycopy(handT, 0, hand, 0, hand.length);
