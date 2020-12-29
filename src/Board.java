@@ -6,13 +6,9 @@ import java.io.*;
 import java.util.Arrays;
 
 public class Board extends JFrame implements KeyListener {
-  public static boolean giveUp;
-  public static boolean useBlank = true;
-  public static String[] dictionary;
-  public static String[] hand = {"A", "B", "C", "D", "E", "F", "G"};
-  public static String[] handT = new String[26 * 4];
-  public static boolean[][] rated = new boolean[15][15];
-  public static char[][] board = {
+  private final String[] hand = {"A", "B", "C", "D", "E", "F", "G"};
+  private final WordFinder wordFinder;
+  private final char[][] board = {
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
@@ -29,11 +25,14 @@ public class Board extends JFrame implements KeyListener {
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
   };
-  private final Gui gui;
-  private final WordFinder wordFinder;
+  private final boolean[][] occupiedTiles = new boolean[15][15];
+  private boolean userInterrupt;
+  private String userMessage = "";
+  private int handSelection = -1;
+  private int xSelection = -1;
+  private int ySelection = -1;
 
-  public Board(Gui gui) {
-    this.gui = gui;
+  public Board() {
     addKeyListener(this);
     setFocusable(true);
     setFocusTraversalKeysEnabled(false);
@@ -43,7 +42,7 @@ public class Board extends JFrame implements KeyListener {
       System.out.println("There are " + lines + " words in the dictionary.");
     } catch (IOException ignored) {
     }
-    dictionary = new String[lines];
+    String[] dictionary = new String[lines];
 
     FileReader fR;
     try {
@@ -74,6 +73,43 @@ public class Board extends JFrame implements KeyListener {
       }
       return (count == 0 && !empty) ? 1 : count;
     }
+  }
+
+  public String[] getHand() {
+    return hand;
+  }
+
+  public boolean[][] getOccupiedTiles() {
+    return occupiedTiles;
+  }
+
+  public char[][] getBoard() {
+    return board;
+  }
+
+  public String getUserMessage() {
+    return userMessage;
+  }
+
+  public int getHandSelection() {
+    return handSelection;
+  }
+
+  public void setHandSelection(int handSelection) {
+    this.handSelection = handSelection;
+  }
+
+  public int getxSelection() {
+    return xSelection;
+  }
+
+  public int getySelection() {
+    return ySelection;
+  }
+
+  public void setSelection(int xSelection, int ySelection) {
+    this.xSelection = xSelection;
+    this.ySelection = ySelection;
   }
 
   public boolean validBoard(String[] move) {
@@ -195,7 +231,7 @@ public class Board extends JFrame implements KeyListener {
     }
     String[][] validWords = wordFinder.getWords(location, Hand, mode);
     String[][] wordScores = new String[validWords.length][5];
-    var rater = new Rater();
+    var rater = new Rater(this);
     for (int i = 0; i < validWords.length; i++) {
       wordScores[i][0] = validWords[i][0];
 
@@ -213,32 +249,30 @@ public class Board extends JFrame implements KeyListener {
     return wordScores;
   }
 
-  public void onEnter() {
+  public void onEnter(boolean useBlank) {
+    double startTime = System.currentTimeMillis();
     String[] arr = {"check"};
     if (!validBoard(arr)) {
-      gui.message = "Current board not valid";
+      userMessage = "Current board not valid";
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     }
-    System.arraycopy(hand, 0, handT, 0, hand.length);
+    var handTemp = new String[hand.length];
+    System.arraycopy(hand, 0, handTemp, 0, hand.length);
     if (!useBlank) {
-      useBlank = true;
       for (int i = 0; i < hand.length; i++) {
         if ("_".equals(hand[i])) {
           hand[i] = "";
-          i = 9000001;
+          break;
         }
       }
     }
-    gui.message = "Searching for words...";
-    gui.handSelect = -1;
-    double startTime = System.currentTimeMillis();
 
     int blankL = -1;
     for (int i = 0; i < hand.length; i++) { // Getting blank location
       if (hand[i].equals("_")) {
         if (blankL != -1) {
-          gui.message = "Only one blank allowed";
+          userMessage = "Only one blank allowed";
           setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
           return;
         }
@@ -246,98 +280,94 @@ public class Board extends JFrame implements KeyListener {
       }
     }
 
-    String[][] validWord1 = {};
+    String[][] validWords = {};
     if (blankL == -1) { // No blank
       for (int i = 0; i < 15; i++) {
         int[][] select1 = {{i, 0}, {i, 14}};
-        validWord1 = joinArray(validWord1, findWord(select1, hand), 5);
+        validWords = joinArray(validWords, findWord(select1, hand), 5);
         int[][] select2 = {{0, i}, {14, i}};
-        validWord1 = joinArray(validWord1, findWord(select2, hand), 5);
+        validWords = joinArray(validWords, findWord(select2, hand), 5);
       }
     } else { // blank
       for (int i = 0; i < 15; i++) {
         int[][] select1 = {{i, 0}, {i, 14}};
-        validWord1 = joinArray(validWord1, findWord(select1, hand), 5);
+        validWords = joinArray(validWords, findWord(select1, hand), 5);
         int[][] select2 = {{0, i}, {14, i}};
-        validWord1 = joinArray(validWord1, findWord(select2, hand), 5);
+        validWords = joinArray(validWords, findWord(select2, hand), 5);
       }
     }
     String message = "";
-    if (validWord1.length == 0) {
-      gui.message = "No words found";
-      System.arraycopy(handT, 0, hand, 0, hand.length);
+    if (validWords.length == 0) {
+      userMessage = "No words found";
+      System.arraycopy(handTemp, 0, hand, 0, hand.length);
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     } else {
       Arrays.sort(
-          validWord1,
+          validWords,
           (String[] a, String[] b) ->
               Double.compare(Double.parseDouble(b[4]), Double.parseDouble(a[4])));
-      for (int i = 0; i < validWord1.length; i++) {
+      for (String[] word : validWords) {
         message =
-            "Checking word "
-                + validWord1[i][0]
-                + " which would score "
-                + validWord1[i][4]
-                + " (press ESC to cancel)";
-        if (validBoard(validWord1[i])) {
+            "Checking word " + word[0] + " which would score " + word[4] + " (press ESC to cancel)";
+        if (validBoard(word)) {
           message = "Found ";
           message +=
-              validWord1[i][0]
+              word[0]
                   + " at ("
-                  + ((char) (Integer.parseInt(validWord1[i][1]) + 97))
-                  + (15 - Integer.parseInt(validWord1[i][2]))
+                  + ((char) (Integer.parseInt(word[1]) + 97))
+                  + (15 - Integer.parseInt(word[2]))
                   + ")";
-          if ("h".equals(validWord1[i][3])) {
+          if ("h".equals(word[3])) {
             message += " horizontally";
           } else {
             message += " vertically";
           }
-          message += ", scoring at least " + validWord1[i][4] + ", ";
-          i = 9000001;
+          message += ", scoring at least " + word[4] + ", ";
+          break;
         }
-        if (giveUp) {
-          giveUp = false;
+        if (userInterrupt) {
+          userInterrupt = false;
           message = "Cancelled ";
-          i = 9000001;
+          break;
         }
       }
     }
-    gui.message = message;
+    userMessage = message;
 
     double finishTime = System.currentTimeMillis();
     System.out.println("Took " + (finishTime - startTime) + " ms");
-    if (gui.message.equals("Cancelled ")) {
-      gui.message += "after " + (finishTime - startTime) + " ms";
+    if (userMessage.equals("Cancelled ")) {
+      userMessage += "after " + (finishTime - startTime) + " ms";
     } else {
-      gui.message += "in " + (finishTime - startTime) + " ms";
+      userMessage += "in " + (finishTime - startTime) + " ms";
     }
-    System.out.println(gui.message);
-    System.arraycopy(handT, 0, hand, 0, hand.length);
+    System.out.println(userMessage);
+    System.arraycopy(handTemp, 0, hand, 0, hand.length);
     setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-    gui.repaint();
+    repaint();
   }
 
   @Override
   public void keyTyped(KeyEvent e) {
-    if (gui.selected[0] != -1) {
+    if (xSelection != -1) {
       if (Character.isAlphabetic(e.getKeyChar())) {
-        board[gui.selected[1]][gui.selected[0]] = Character.toUpperCase(e.getKeyChar());
-        rated[gui.selected[1]][gui.selected[0]] = true;
+        board[ySelection][xSelection] = Character.toUpperCase(e.getKeyChar());
+        occupiedTiles[ySelection][xSelection] = true;
       }
       if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-        board[gui.selected[1]][gui.selected[0]] = ' ';
-        rated[gui.selected[1]][gui.selected[0]] = false;
+        board[ySelection][xSelection] = ' ';
+        occupiedTiles[ySelection][xSelection] = false;
       }
     }
-    if (gui.handSelect != -1) {
+    if (handSelection != -1) {
       if (Character.isAlphabetic(e.getKeyChar()))
-        hand[gui.handSelect] = (e.getKeyChar() + "").toUpperCase();
+        hand[handSelection] = (e.getKeyChar() + "").toUpperCase();
       if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-        hand[gui.handSelect] = "";
+        hand[handSelection] = "";
       }
       if (e.getKeyChar() == '-') {
-        hand[gui.handSelect] = "_";
+        hand[handSelection] = "_";
       }
     }
     repaint();
@@ -347,31 +377,32 @@ public class Board extends JFrame implements KeyListener {
   public void keyPressed(KeyEvent e) {
     if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
       setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      (new Thread(this::onEnter)).start();
+      onEnter(true);
     }
     if (e.getExtendedKeyCode() == KeyEvent.VK_SHIFT) {
-      useBlank = false;
       setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      (new Thread(this::onEnter)).start();
+      onEnter(false);
     }
-    if (gui.handSelect == -1) {
-      if (e.getExtendedKeyCode() == KeyEvent.VK_LEFT && gui.selected[0] > 0) {
-        gui.selected[0]--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_RIGHT && gui.selected[0] < 14) {
-        gui.selected[0]++;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_UP && gui.selected[1] > 0) {
-        gui.selected[1]--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && gui.selected[1] < 14) {
-        gui.selected[1]++;
+    if (handSelection == -1) {
+      if (e.getExtendedKeyCode() == KeyEvent.VK_LEFT && xSelection > 0) {
+        xSelection--;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_RIGHT && xSelection < 14) {
+        xSelection++;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_UP && ySelection > 0) {
+        ySelection--;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && ySelection < 14) {
+        ySelection++;
       }
     } else {
-      if (e.getExtendedKeyCode() == KeyEvent.VK_UP && gui.handSelect > 0) {
-        gui.handSelect--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && gui.handSelect < 6) {
-        gui.handSelect++;
+      if (e.getExtendedKeyCode() == KeyEvent.VK_UP && handSelection > 0) {
+        handSelection--;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && handSelection < 6) {
+        handSelection++;
       }
     }
-    if (e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) giveUp = true;
+    if (e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) {
+      userInterrupt = true;
+    }
     repaint();
   }
 

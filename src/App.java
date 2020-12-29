@@ -3,8 +3,8 @@ import java.awt.*;
 
 public class App {
   public static void main(String[] args) {
-    var gui = new Gui();
-    Board board = new Board(gui);
+    var board = new Board();
+    var gui = new Gui(board);
     javax.swing.SwingUtilities.invokeLater(
         () -> {
           board.setTitle("Scrabble Perfect");

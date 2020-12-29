@@ -5,11 +5,14 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 
 public class Gui extends JComponent implements MouseListener, MouseMotionListener {
-  public int[] selected = {-1, -1};
-  public int handSelect = -1;
-  public String message = "";
+  private final Board board;
   boolean foobar = true;
   int x, y;
+
+  public Gui(Board board) {
+    super();
+    this.board = board;
+  }
 
   @Override
   public void paintComponent(Graphics g) {
@@ -40,7 +43,7 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
     Font small = new Font("Arial", Font.PLAIN, 12);
     g2.setFont(medium);
     g2.setColor(Color.black);
-    g2.drawString(message, 15, 710);
+    g2.drawString(board.getUserMessage(), 15, 710);
     g2.setFont(small);
     for (int i = 0; i < 15; i++) {
       g2.drawString((char) (i + 97) + "", 25 + i * 44, 682);
@@ -79,23 +82,23 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
     // Draw the tiles
     for (int i = 0; i < 15; i++) {
       for (int j = 0; j < 15; j++) {
-        if (Board.board[j][i] != ' ') {
+        if (board.getBoard()[j][i] != ' ') {
           g.drawImage(tile, i * 44 + 8, j * 44 + 8, this);
           g2.setFont(large);
-          if (Character.isUpperCase(Board.board[j][i])) {
-            g2.drawString(Board.board[j][i] + "", i * 44 + 12, j * 44 + 40);
-          } else if (Character.isLowerCase(Board.board[j][i])) {
+          if (Character.isUpperCase(board.getBoard()[j][i])) {
+            g2.drawString(board.getBoard()[j][i] + "", i * 44 + 12, j * 44 + 40);
+          } else if (Character.isLowerCase(board.getBoard()[j][i])) {
             g2.setFont(small);
-            g2.drawString("(" + Board.board[j][i] + ")", i * 44 + 18, j * 44 + 32);
+            g2.drawString("(" + board.getBoard()[j][i] + ")", i * 44 + 18, j * 44 + 32);
             g2.drawString("0", i * 44 + 37, j * 44 + 42);
           }
           g2.setFont(small);
           int nx = 37;
-          if (Board.board[j][i] == 'Q' || Board.board[j][i] == 'Z') {
+          if (board.getBoard()[j][i] == 'Q' || board.getBoard()[j][i] == 'Z') {
             nx = 33;
           }
           int ny = 42;
-          switch (Board.board[j][i]) {
+          switch (board.getBoard()[j][i]) {
             case 'A':
             case 'E':
             case 'I':
@@ -145,22 +148,22 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
     // Draw the hand
     int sp = 6;
     int so = 0;
-    for (int i = 0; i < Board.hand.length; i++) {
-      if (!"".equals(Board.hand[i])) {
+    for (int i = 0; i < board.getHand().length; i++) {
+      if (!"".equals(board.getHand()[i])) {
         try {
-          if ("_".equals(Board.hand[i]) || Character.isAlphabetic(Board.hand[i].charAt(0))) {
+          if ("_".equals(board.getHand()[i]) || Character.isAlphabetic(board.getHand()[i].charAt(0))) {
             g.drawImage(tile, 700 - sp, 20 + i * 44 - so, this);
             g2.setFont(large);
-            if (Character.isUpperCase(Board.hand[i].charAt(0))) {
-              g2.drawString(Board.hand[i] + "", 704 - sp, i * 44 + 54 - so);
+            if (Character.isUpperCase(board.getHand()[i].charAt(0))) {
+              g2.drawString(board.getHand()[i] + "", 704 - sp, i * 44 + 54 - so);
             }
             g2.setFont(small);
             int nx = 29 - sp;
-            if ("Q".equals(Board.hand[i]) || "Z".equals(Board.hand[i])) {
+            if ("Q".equals(board.getHand()[i]) || "Z".equals(board.getHand()[i])) {
               nx = 25 - sp;
             }
             int ny = 42 + 12 - so;
-            switch (Board.hand[i].charAt(0)) {
+            switch (board.getHand()[i].charAt(0)) {
               case 'A':
               case 'E':
               case 'I':
@@ -210,19 +213,22 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
     }
 
     // Draw the selection
-    if (selected[0] != -1) {
+    var xSelection = board.getxSelection();
+    var ySelection = board.getySelection();
+    if (xSelection != -1) {
       g.setColor(Color.red);
-      g.fillRect(selected[0] * 44 + 6, selected[1] * 44 + 6, 4, 44);
-      g.fillRect(selected[0] * 44 + 46, selected[1] * 44 + 6, 4, 44);
-      g.fillRect(selected[0] * 44 + 6, selected[1] * 44 + 6, 44, 4);
-      g.fillRect(selected[0] * 44 + 6, selected[1] * 44 + 46, 44, 4);
+      g.fillRect(xSelection * 44 + 6, ySelection * 44 + 6, 4, 44);
+      g.fillRect(xSelection * 44 + 46, ySelection * 44 + 6, 4, 44);
+      g.fillRect(xSelection * 44 + 6, ySelection * 44 + 6, 44, 4);
+      g.fillRect(xSelection * 44 + 6, ySelection * 44 + 46, 44, 4);
     }
-    if (handSelect != -1) {
+    var handSelection = board.getHandSelection();
+    if (handSelection != -1) {
       g.setColor(Color.red);
-      g.fillRect(698 - sp, 18 + handSelect * 44, 4, 44);
-      g.fillRect(698 + 40 - sp, 18 + handSelect * 44, 4, 44);
-      g.fillRect(698 - sp, 18 + handSelect * 44, 44, 4);
-      g.fillRect(698 - sp, 58 + handSelect * 44, 44, 4);
+      g.fillRect(698 - sp, 18 + handSelection * 44, 4, 44);
+      g.fillRect(698 + 40 - sp, 18 + handSelection * 44, 4, 44);
+      g.fillRect(698 - sp, 18 + handSelection * 44, 44, 4);
+      g.fillRect(698 - sp, 58 + handSelection * 44, 44, 4);
     }
   }
 
@@ -232,28 +238,29 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
   @Override
   public void mousePressed(MouseEvent e) {
     int sp = 6;
-    selected[0] = (x - 6) / 44;
-    selected[1] = (y - 6) / 44;
+    var xSelection = (x - 6) / 44;
+    var ySelection  = (y - 6) / 44;
     if (x > 665 || y > 665) {
-      selected[0] = -1;
+      xSelection = -1;
       if (x > 698 - sp && x < 742 - sp && y > 18 && y < 326) {
-        handSelect = (y - 18) / 44;
-        selected[1] = -1;
+        board.setHandSelection((y - 18) / 44);
+        ySelection = -1;
       } else {
-        handSelect = -1;
+        board.setHandSelection(-1);
       }
     } else {
-      handSelect = -1;
+      board.setHandSelection(-1);
     }
-    if (e.getButton() == 3 && selected[0] != -1) {
-      if (Character.isUpperCase(Board.board[selected[1]][selected[0]])) {
-        Board.board[selected[1]][selected[0]] =
-            Character.toLowerCase(Board.board[selected[1]][selected[0]]);
+    if (e.getButton() == 3 && xSelection != -1) {
+      if (Character.isUpperCase(board.getBoard()[ySelection][xSelection])) {
+        board.getBoard()[ySelection][xSelection] =
+            Character.toLowerCase(board.getBoard()[ySelection][xSelection]);
       } else {
-        Board.board[selected[1]][selected[0]] =
-            Character.toUpperCase(Board.board[selected[1]][selected[0]]);
+        board.getBoard()[ySelection][xSelection] =
+            Character.toUpperCase(board.getBoard()[ySelection][xSelection]);
       }
     }
+    board.setSelection(xSelection, ySelection);
     repaint();
   }
 

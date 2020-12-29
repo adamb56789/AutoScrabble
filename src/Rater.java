@@ -1,3 +1,5 @@
+import java.util.Arrays;
+
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
 public class Rater {
   public static final char[][] BONUSES = {
@@ -17,6 +19,11 @@ public class Rater {
     {' ', 'w', ' ', ' ', ' ', 'L', ' ', ' ', ' ', 'L', ' ', ' ', ' ', 'w', ' '},
     {'W', ' ', ' ', 'l', ' ', ' ', ' ', 'W', ' ', ' ', ' ', 'l', ' ', ' ', 'W'}
   };
+  private final Board board;
+
+  public Rater(Board board) {
+    this.board = board;
+  }
 
   private int rateWord(String[][] word, char[] location) {
     int[] rating = countPoints(word);
@@ -131,10 +138,10 @@ public class Rater {
     int rating = 0;
 
     for (int i = 0; i < 15; i++) {
-      System.arraycopy(Board.board[i], 0, boardT[i], 0, 15);
+      System.arraycopy(board.getBoard()[i], 0, boardT[i], 0, 15);
     }
     for (int i = 0; i < 15; i++) {
-      System.arraycopy(Board.rated[i], 0, rated[i], 0, 15);
+      System.arraycopy(board.getOccupiedTiles()[i], 0, rated[i], 0, 15);
     }
     for (int i = 0; i < location[0].length(); i++) {
       if ("h".equals(location[3])) {
@@ -163,11 +170,11 @@ public class Rater {
     }
 
     // Copy rows of original board
-    System.arraycopy(Board.board, 0, oldLines, 0, 15);
+    System.arraycopy(board.getBoard(), 0, oldLines, 0, 15);
     // Copy columns of original board
     for (int i = 15; i < 30; i++) {
       for (int j = 0; j < 15; j++) {
-        oldLines[i][j] = Board.board[j][i - 15];
+        oldLines[i][j] = board.getBoard()[j][i - 15];
       }
     }
 
