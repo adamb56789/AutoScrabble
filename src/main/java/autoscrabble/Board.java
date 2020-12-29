@@ -1,8 +1,11 @@
+package autoscrabble;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Board extends JFrame implements KeyListener {
@@ -36,43 +39,21 @@ public class Board extends JFrame implements KeyListener {
     addKeyListener(this);
     setFocusable(true);
     setFocusTraversalKeysEnabled(false);
-    int lines = 0;
+    var inputStream = getClass().getClassLoader().getResourceAsStream("Dictionary.txt");
+    assert inputStream != null;
+    var streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+    var reader = new BufferedReader(streamReader);
+    var dictionary = new String[] {};
     try {
-      lines = countLines("Dictionary.txt") + 1;
-      System.out.println("There are " + lines + " words in the dictionary.");
-    } catch (IOException ignored) {
-    }
-    String[] dictionary = new String[lines];
-
-    FileReader fR;
-    try {
-      fR = new FileReader("Dictionary.txt");
-      BufferedReader bR = new BufferedReader(fR);
-      for (int i = 0; i < lines; i++) {
-        dictionary[i] = bR.readLine();
+      dictionary = reader.lines().toArray(String[]::new);
+      for (String line; (line = reader.readLine()) != null; ) {
+        System.out.println(line);
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
     wordFinder = new WordFinder(dictionary);
-  }
-
-  public static int countLines(String filename) throws IOException {
-    try (InputStream is = new BufferedInputStream(new FileInputStream(filename))) {
-      byte[] c = new byte[1024];
-      int count = 0;
-      int readChars;
-      boolean empty = true;
-      while ((readChars = is.read(c)) != -1) {
-        empty = false;
-        for (int i = 0; i < readChars; ++i) {
-          if (c[i] == '\n') {
-            ++count;
-          }
-        }
-      }
-      return (count == 0 && !empty) ? 1 : count;
-    }
+    System.out.println("There are " + dictionary.length + " words in the dictionary.");
   }
 
   public String[] getHand() {

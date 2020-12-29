@@ -1,4 +1,4 @@
-import java.util.Arrays;
+package autoscrabble;
 
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
 public class Rater {

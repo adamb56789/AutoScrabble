@@ -1,3 +1,5 @@
+package autoscrabble;
+
 public class WordFinder {
   private String[][] characters;
   private String[] dictionary;

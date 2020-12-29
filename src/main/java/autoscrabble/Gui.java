@@ -1,17 +1,39 @@
+package autoscrabble;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.io.IOException;
 
 public class Gui extends JComponent implements MouseListener, MouseMotionListener {
   private final Board board;
   boolean foobar = true;
   int x, y;
+  private Image tripleWord;
+  private Image doubleWord;
+  private Image tripleLetter;
+  private Image doubleLetter;
+  private Image start;
+  private Image tile;
+  private Image tileBackground;
 
   public Gui(Board board) {
     super();
     this.board = board;
+    try {
+      tripleWord = ImageIO.read(getClass().getResource("/images/tripleWord.png"));
+      doubleWord = ImageIO.read(getClass().getResource("/images/doubleWord.png"));
+      tripleLetter = ImageIO.read(getClass().getResource("/images/tripleLetter.png"));
+      doubleLetter = ImageIO.read(getClass().getResource("/images/doubleLetter.png"));
+      start = ImageIO.read(getClass().getResource("/images/start.png"));
+      tile = ImageIO.read(getClass().getResource("/images/tile.png"));
+      tileBackground = ImageIO.read(getClass().getResource("/images/tileBackground.png"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
@@ -29,13 +51,6 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
     g.setColor(Color.decode("#C8C2A8"));
     g.fillRect(0, 0, 672, 672);
 
-    Image tripleWord = new ImageIcon("Images/tripleword.png").getImage();
-    Image doubleWord = new ImageIcon("Images/doubleword.png").getImage();
-    Image tripleLetter = new ImageIcon("Images/tripleletter.png").getImage();
-    Image doubleLetter = new ImageIcon("Images/doubleletter.png").getImage();
-    Image start = new ImageIcon("Images/start.png").getImage();
-    Image tile = new ImageIcon("Images/tile.png").getImage();
-    Image tileBackground = new ImageIcon("Images/tileBackground.png").getImage();
     g.drawImage(tileBackground, 690, 16, this);
 
     Font large = new Font("Arial", Font.PLAIN, 30);
