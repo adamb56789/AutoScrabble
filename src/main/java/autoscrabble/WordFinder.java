@@ -176,7 +176,8 @@ public class WordFinder {
     for (int i = 0; i < validList2n; i++) {
       boolean valid = true;
 
-      if (!"".equals(l[Integer.parseInt(validList2[i][1]) - 1])) {
+      var i2 = Integer.parseInt(validList2[i][1]) - 1;
+      if (i2 > 0 && !"".equals(l[i2])) {
         valid = false;
       }
 

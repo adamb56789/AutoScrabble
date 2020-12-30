@@ -143,7 +143,7 @@ public class Board extends JFrame implements KeyListener {
     }
 
     for (int i = 0; i < 30; i++) {
-      for (int j = 0; j < 15; j++) {
+      for (int j = 0; j < 14; j++) {
         if (Character.isAlphabetic(lines[i][j]) && Character.isAlphabetic(lines[i][j + 1])) {
           StringBuilder word = new StringBuilder(lines[i][j] + "");
           int k = 1;
@@ -154,7 +154,7 @@ public class Board extends JFrame implements KeyListener {
 
           int f = 0;
 
-          while (Character.isAlphabetic(lines[i][j + k])) {
+          while (j + k < 15 && Character.isAlphabetic(lines[i][j + k])) {
             word.append(lines[i][j + k]);
             k++;
             f++;

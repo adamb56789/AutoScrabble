@@ -150,7 +150,7 @@ public class Rater {
             int k = j - 1;
             while (foobar) { // Count backwards
               length++;
-              if (!Character.isAlphabetic(lines[i][k])) {
+              if (k < 0 || k >= lines[0].length || !Character.isAlphabetic(lines[i][k])) {
                 foobar = false;
               }
               k--;
@@ -161,7 +161,7 @@ public class Rater {
             length--;
             while (foobar) { // Count forwards
               length++;
-              if (!Character.isAlphabetic(lines[i][l])) {
+              if (l < 0 || l >= lines[0].length || !Character.isAlphabetic(lines[i][l])) {
                 foobar = false;
               }
               l++;
