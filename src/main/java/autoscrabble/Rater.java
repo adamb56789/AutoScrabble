@@ -38,11 +38,8 @@ public class Rater {
     int lettersOnBoard = 0;
     int lettersInWord = word.length;
     for (char c : location) {
-      try {
-        if (Character.isAlphabetic(c)) {
-          lettersOnBoard++;
-        }
-      } catch (Exception ignored) {
+      if (Character.isAlphabetic(c)) {
+        lettersOnBoard++;
       }
     }
     if (lettersInWord - lettersOnBoard >= 7) {
@@ -195,11 +192,7 @@ public class Rater {
             int k = j - 1;
             while (foobar) { // Count backwards
               length++;
-              try {
-                if (!Character.isAlphabetic(lines[i][k])) {
-                  foobar = false;
-                }
-              } catch (Exception e) {
+              if (!Character.isAlphabetic(lines[i][k])) {
                 foobar = false;
               }
               k--;
@@ -210,11 +203,7 @@ public class Rater {
             length--;
             while (foobar) { // Count forwards
               length++;
-              try {
-                if (!Character.isAlphabetic(lines[i][l])) {
-                  foobar = false;
-                }
-              } catch (Exception e) {
+              if (!Character.isAlphabetic(lines[i][l])) {
                 foobar = false;
               }
               l++;

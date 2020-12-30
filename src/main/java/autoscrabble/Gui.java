@@ -165,64 +165,61 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
     int so = 0;
     for (int i = 0; i < board.getHand().length; i++) {
       if (!"".equals(board.getHand()[i])) {
-        try {
-          if ("_".equals(board.getHand()[i]) || Character.isAlphabetic(board.getHand()[i].charAt(0))) {
-            g.drawImage(tile, 700 - sp, 20 + i * 44 - so, this);
-            g2.setFont(large);
-            if (Character.isUpperCase(board.getHand()[i].charAt(0))) {
-              g2.drawString(board.getHand()[i] + "", 704 - sp, i * 44 + 54 - so);
-            }
-            g2.setFont(small);
-            int nx = 29 - sp;
-            if ("Q".equals(board.getHand()[i]) || "Z".equals(board.getHand()[i])) {
-              nx = 25 - sp;
-            }
-            int ny = 42 + 12 - so;
-            switch (board.getHand()[i].charAt(0)) {
-              case 'A':
-              case 'E':
-              case 'I':
-              case 'U':
-              case 'T':
-              case 'S':
-              case 'R':
-              case 'O':
-              case 'N':
-              case 'L':
-                g2.drawString("1", 700 + nx, i * 44 + ny);
-                break;
-              case 'D':
-              case 'G':
-                g2.drawString("2", 700 + nx, i * 44 + ny);
-                break;
-              case 'B':
-              case 'C':
-              case 'P':
-              case 'M':
-                g2.drawString("3", 700 + nx, i * 44 + ny);
-                break;
-              case 'F':
-              case 'H':
-              case 'Y':
-              case 'W':
-              case 'V':
-                g2.drawString("4", 700 + nx, i * 44 + ny);
-                break;
-              case 'K':
-                g2.drawString("5", 700 + nx, i * 44 + ny);
-                break;
-              case 'J':
-              case 'X':
-                g2.drawString("8", 700 + nx, i * 44 + ny);
-                break;
-              case 'Q':
-              case 'Z':
-                g2.drawString("10", 700 + nx, i * 44 + ny);
-                break;
-              default:
-            }
+        if ("_".equals(board.getHand()[i]) || Character.isAlphabetic(board.getHand()[i].charAt(0))) {
+          g.drawImage(tile, 700 - sp, 20 + i * 44 - so, this);
+          g2.setFont(large);
+          if (Character.isUpperCase(board.getHand()[i].charAt(0))) {
+            g2.drawString(board.getHand()[i] + "", 704 - sp, i * 44 + 54 - so);
           }
-        } catch (Exception ignored) {
+          g2.setFont(small);
+          int nx = 29 - sp;
+          if ("Q".equals(board.getHand()[i]) || "Z".equals(board.getHand()[i])) {
+            nx = 25 - sp;
+          }
+          int ny = 42 + 12 - so;
+          switch (board.getHand()[i].charAt(0)) {
+            case 'A':
+            case 'E':
+            case 'I':
+            case 'U':
+            case 'T':
+            case 'S':
+            case 'R':
+            case 'O':
+            case 'N':
+            case 'L':
+              g2.drawString("1", 700 + nx, i * 44 + ny);
+              break;
+            case 'D':
+            case 'G':
+              g2.drawString("2", 700 + nx, i * 44 + ny);
+              break;
+            case 'B':
+            case 'C':
+            case 'P':
+            case 'M':
+              g2.drawString("3", 700 + nx, i * 44 + ny);
+              break;
+            case 'F':
+            case 'H':
+            case 'Y':
+            case 'W':
+            case 'V':
+              g2.drawString("4", 700 + nx, i * 44 + ny);
+              break;
+            case 'K':
+              g2.drawString("5", 700 + nx, i * 44 + ny);
+              break;
+            case 'J':
+            case 'X':
+              g2.drawString("8", 700 + nx, i * 44 + ny);
+              break;
+            case 'Q':
+            case 'Z':
+              g2.drawString("10", 700 + nx, i * 44 + ny);
+              break;
+            default:
+          }
         }
       }
     }

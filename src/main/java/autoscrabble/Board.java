@@ -4,7 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
@@ -123,32 +125,27 @@ public class Board extends JFrame implements KeyListener {
 
     for (int i = 0; i < 30; i++) {
       for (int j = 0; j < 15; j++) {
-        try {
-          if (Character.isAlphabetic(lines[i][j]) && Character.isAlphabetic(lines[i][j + 1])) {
-            StringBuilder word = new StringBuilder(lines[i][j] + "");
-            int k = 1;
+        if (Character.isAlphabetic(lines[i][j]) && Character.isAlphabetic(lines[i][j + 1])) {
+          StringBuilder word = new StringBuilder(lines[i][j] + "");
+          int k = 1;
 
-            if (!Character.isAlphabetic(lines[i][j + k])) {
-              word = new StringBuilder();
-            }
-
-            int f = 0;
-
-            try {
-              while (Character.isAlphabetic(lines[i][j + k])) {
-                word.append(lines[i][j + k]);
-                k++;
-                f++;
-              }
-            } catch (Exception ignored) {
-            }
-            j += f;
-
-            if (!wordFinder.isWord(word.toString())) {
-              return false;
-            }
+          if (!Character.isAlphabetic(lines[i][j + k])) {
+            word = new StringBuilder();
           }
-        } catch (Exception ignored) {
+
+          int f = 0;
+
+          while (Character.isAlphabetic(lines[i][j + k])) {
+            word.append(lines[i][j + k]);
+            k++;
+            f++;
+          }
+
+          j += f;
+
+          if (!wordFinder.isWord(word.toString())) {
+            return false;
+          }
         }
       }
     }
@@ -194,20 +191,15 @@ public class Board extends JFrame implements KeyListener {
     }
     // Calculate mode - normal (0), blanks on the board (1), blanks in the hand (2)
     int mode = 0;
-    for (String value : location) {
-      try {
-        if (Character.isLowerCase(value.charAt(0))) {
-          mode = 1;
-        }
-      } catch (Exception ignored) {
+    for (String tile : location) {
+      if (tile.length() > 0 && Character.isLowerCase(tile.charAt(0))) {
+        mode = 1;
       }
     }
-    for (int i = 0; i < location.length; i++) {
-      try {
-        if ("_".equals(hand[i])) {
-          mode = 2;
-        }
-      } catch (Exception ignored) {
+    for (String letter : hand) {
+      if ("_".equals(letter)) {
+        mode = 2;
+        break;
       }
     }
     String[][] validWords = wordFinder.getWords(location, Hand, mode);

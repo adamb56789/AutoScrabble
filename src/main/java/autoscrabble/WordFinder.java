@@ -73,10 +73,7 @@ public class WordFinder {
     int[] handCount = new int[27];
 
     for (String s : h) {
-      try {
-        handCount[Character.getNumericValue(s.charAt(0)) - 10]++;
-      } catch (Exception ignored) {
-      }
+      handCount[Character.getNumericValue(s.charAt(0)) - 10]++;
     }
     String[][] validList2temp = new String[validList1n][2];
     if (mode == 2) validList2temp = new String[validList1n * 26][2];
@@ -152,18 +149,14 @@ public class WordFinder {
               for (int o = 0;
                   o < validList2temp[validList2n][0].length();
                   o++) { // Make the first blank letter lower case (not 100% ideal)
-                try {
-                  if (Character.getNumericValue(validList2temp[validList2n][0].charAt(o)) - 10
-                      == m) {
-                    if ("".equals(l[Integer.parseInt(validList2temp[validList2n][1]) + o])) {
-                      validList2temp[validList2n][0] =
-                          validList2temp[validList2n][0].substring(0, o)
-                              + Character.toLowerCase(validList2temp[validList2n][0].charAt(o))
-                              + validList2temp[validList2n][0].substring(o + 1);
-                      o = 90000001;
-                    }
+                if (Character.getNumericValue(validList2temp[validList2n][0].charAt(o)) - 10 == m) {
+                  if ("".equals(l[Integer.parseInt(validList2temp[validList2n][1]) + o])) {
+                    validList2temp[validList2n][0] =
+                        validList2temp[validList2n][0].substring(0, o)
+                            + Character.toLowerCase(validList2temp[validList2n][0].charAt(o))
+                            + validList2temp[validList2n][0].substring(o + 1);
+                    o = 90000001;
                   }
-                } catch (Exception ignored) {
                 }
               }
             }
@@ -181,18 +174,12 @@ public class WordFinder {
     for (int i = 0; i < validList2n; i++) {
       boolean valid = true;
 
-      try {
-        if (!"".equals(l[Integer.parseInt(validList2[i][1]) - 1])) {
-          valid = false;
-        }
-      } catch (Exception ignored) {
+      if (!"".equals(l[Integer.parseInt(validList2[i][1]) - 1])) {
+        valid = false;
       }
 
-      try {
-        if (!"".equals(l[Integer.parseInt(validList2[i][1]) + validList2[i][0].length()])) {
-          valid = false;
-        }
-      } catch (Exception ignored) {
+      if (!"".equals(l[Integer.parseInt(validList2[i][1]) + validList2[i][0].length()])) {
+        valid = false;
       }
 
       if (valid) {
