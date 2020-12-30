@@ -5,23 +5,57 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
 import java.io.IOException;
 
-public class Gui extends JComponent implements MouseListener, MouseMotionListener {
+public class Gui extends JComponent implements MouseListener {
   public static final Font FONT_LARGE = new Font("Arial", Font.PLAIN, 30);
   public static final Font FONT_MEDIUM = new Font("Arial", Font.PLAIN, 20);
   public static final Font FONT_SMALL = new Font("Arial", Font.PLAIN, 12);
+
+  public static final Color BOARD_BACKGROUND_COLOUR = Color.decode("#ECE8D9");
+  public static final Color TEXT_COLOUR = Color.black;
+
+  public static final int MESSAGE_X = 15;
+  public static final int MESSAGE_Y_OFFSET = 38;
+
+  public static final Color OUTLINE_COLOUR = Color.black;
+  public static final int OUTLINE_WEIGHT = 4;
+
+  public static final Color SQUARE_COLOUR = Color.decode("#C8C2A8");
+  public static final int SQUARE_SIZE = 40;
+  public static final int SQUARE_SPACING = 4;
+  public static final int SQUARE_OFFSET = SQUARE_SIZE + SQUARE_SPACING;
+  public static final int BOARD_SIZE = 2 * OUTLINE_WEIGHT + SQUARE_SPACING + Board.SIZE * SQUARE_OFFSET;
+
+  public static final int LETTER_COORDS_X_OFFSET = 25;
+  public static final int LETTER_COORDS_Y_OFFSET = 10;
+  public static final int NUMBER_COORDS_X_OFFSET = 1;
+  public static final int NUMBER_COORDS_Y_OFFSET = 11;
+
+  public static final int TILE_LETTER_X = 4;
+  public static final int TILE_LETTER_Y = 32;
+  public static final int TILE_SCORE_Y = 34;
+  public static final int TILE_SCORE_X = 29;
+  public static final int TILE_SCORE_X_CORRECTION = 4;
+
+  public static final Color RACK_COLOUR = Color.decode("#8C4000");
+  public static final int RACK_X = BOARD_SIZE + 18;
+  public static final int RACK_Y = 16;
+  public static final int RACK_TILE_SPACING = 4;
+  public static final int RACK_WIDTH = SQUARE_SIZE + 2 * RACK_TILE_SPACING;
+  public static final int RACK_HEIGHT = Board.RACK_CAPACITY * SQUARE_SIZE + (Board.RACK_CAPACITY + 1) * RACK_TILE_SPACING;
+
+  public static final Color SELECTION_COLOUR = Color.red;
+  public static final int SELECTION_INTERIOR_OVERLAP = 2;
+  public static final int SELECTION_LINE_WEIGHT = 4;
+
   private final Board board;
-  boolean foobar = true;
-  int x, y;
   private Image tripleWord;
   private Image doubleWord;
   private Image tripleLetter;
   private Image doubleLetter;
   private Image start;
   private Image tile;
-  private Image tileBackground;
 
   public Gui(Board board) {
     super();
@@ -33,10 +67,10 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
       doubleLetter = ImageIO.read(getClass().getResource("/images/doubleLetter.png"));
       start = ImageIO.read(getClass().getResource("/images/start.png"));
       tile = ImageIO.read(getClass().getResource("/images/tile.png"));
-      tileBackground = ImageIO.read(getClass().getResource("/images/tileBackground.png"));
     } catch (IOException e) {
       e.printStackTrace();
     }
+    addMouseListener(this);
   }
 
   @Override
@@ -45,124 +79,156 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
   }
 
   protected void paintComponent(Graphics2D g) {
-    if (foobar) {
-      addMouseListener(this);
-      addMouseMotionListener(this);
-      foobar = false;
-    }
     super.paintComponent(g);
     g.setRenderingHint(
-        RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+        RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-    g.setColor(Color.decode("#C8C2A8"));
-    g.fillRect(0, 0, 672, 672);
-
-    g.drawImage(tileBackground, 690, 16, this);
-
+    // Draw the user message
     g.setFont(FONT_MEDIUM);
-    g.setColor(Color.black);
-    g.drawString(board.getUserMessage(), 15, 710);
+    g.setColor(TEXT_COLOUR);
+    g.drawString(board.getUserMessage(), MESSAGE_X, BOARD_SIZE + MESSAGE_Y_OFFSET);
+
+    g.setColor(BOARD_BACKGROUND_COLOUR);
+    g.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
+
+    // Draw the coordinates
     g.setFont(FONT_SMALL);
-    for (int i = 0; i < 15; i++) {
-      g.drawString((char) (i + 97) + "", 25 + i * 44, 682);
-      g.drawString((i + 1) + "", 673, (15 - i) * 44 - 11);
+    g.setColor(TEXT_COLOUR);
+    for (int i = 0; i < Board.SIZE; i++) {
+      g.drawString((char) (i + 97) + "",
+              LETTER_COORDS_X_OFFSET + i * SQUARE_OFFSET,
+              BOARD_SIZE + LETTER_COORDS_Y_OFFSET);
+      g.drawString((i + 1) + "",
+              BOARD_SIZE + NUMBER_COORDS_X_OFFSET,
+              (Board.SIZE - i) * SQUARE_OFFSET - NUMBER_COORDS_Y_OFFSET);
     }
-    g.setFont(FONT_LARGE);
 
-    // draw the lines of the board
-    g.setColor(Color.decode("#ECE8D9"));
-    for (int i = 0; i < 16; i++) {
-      g.fillRect(i * 44 + 4, 4, 4, 664);
-      g.fillRect(4, i * 44 + 4, 664, 4);
-    }
-    g.setColor(Color.black);
-    g.fillRect(0, 0, 4, 668);
-    g.fillRect(15 * 44 + 8, 0, 4, 672);
-    g.fillRect(0, 0, 668, 4);
-    g.fillRect(0, 15 * 44 + 8, 672, 4);
+    // Draw the outline of the board
+    g.setColor(OUTLINE_COLOUR);
+    g.fillRect(0, 0, OUTLINE_WEIGHT, BOARD_SIZE);
+    g.fillRect(BOARD_SIZE - OUTLINE_WEIGHT, 0, OUTLINE_WEIGHT, BOARD_SIZE);
+    g.fillRect(0, 0, BOARD_SIZE, OUTLINE_WEIGHT);
+    g.fillRect(0, BOARD_SIZE - OUTLINE_WEIGHT, BOARD_SIZE, OUTLINE_WEIGHT);
 
-    // draw the images of the board
-    for (int i = 0; i < 15; i++) {
-      for (int j = 0; j < 15; j++) {
-        if (i == 7 && j == 7) {
-          g.drawImage(start, j * 44 + 4, i * 44 + 4, this);
+    // Draw the squares
+    g.setColor(SQUARE_COLOUR);
+    for (int i = 0; i < Board.SIZE; i++) {
+      for (int j = 0; j < Board.SIZE; j++) {
+        int squareX = j * SQUARE_OFFSET + OUTLINE_WEIGHT;
+        int squareY = i * SQUARE_OFFSET + OUTLINE_WEIGHT;
+        if (i == Board.SIZE / 2 && j == Board.SIZE / 2) {
+          g.drawImage(start, squareX, squareY, this);
         } else {
           switch (Rater.BONUSES[j][i]) {
-            case 'W' -> g.drawImage(tripleWord, j * 44 + 4, i * 44 + 4, this);
-            case 'w' -> g.drawImage(doubleWord, j * 44 + 4, i * 44 + 4, this);
-            case 'L' -> g.drawImage(tripleLetter, j * 44 + 4, i * 44 + 4, this);
-            case 'l' -> g.drawImage(doubleLetter, j * 44 + 4, i * 44 + 4, this);
+            case 'W' -> g.drawImage(tripleWord, squareX, squareY, this);
+            case 'w' -> g.drawImage(doubleWord, squareX, squareY, this);
+            case 'L' -> g.drawImage(tripleLetter, squareX, squareY, this);
+            case 'l' -> g.drawImage(doubleLetter, squareX, squareY, this);
+            default -> g.fillRect(squareX + SQUARE_SPACING, squareY + SQUARE_SPACING, SQUARE_SIZE, SQUARE_SIZE);
           }
         }
       }
     }
 
     // Draw the tiles
-    for (int i = 0; i < 15; i++) {
-      for (int j = 0; j < 15; j++) {
+    g.setColor(TEXT_COLOUR);
+    for (int i = 0; i < Board.SIZE; i++) {
+      for (int j = 0; j < Board.SIZE; j++) {
         if (board.getBoard()[j][i] != ' ') {
-          g.drawImage(tile, i * 44 + 8, j * 44 + 8, this);
-          g.setFont(FONT_LARGE);
-          if (Character.isUpperCase(board.getBoard()[j][i])) {
-            g.drawString(board.getBoard()[j][i] + "", i * 44 + 12, j * 44 + 40);
-          } else if (Character.isLowerCase(board.getBoard()[j][i])) {
-            g.setFont(FONT_SMALL);
-            g.drawString("(" + board.getBoard()[j][i] + ")", i * 44 + 18, j * 44 + 32);
-            g.drawString("0", i * 44 + 37, j * 44 + 42);
-          }
-          g.setFont(FONT_SMALL);
-          int nx = 37;
-          if (board.getBoard()[j][i] == 'Q' || board.getBoard()[j][i] == 'Z') {
-            nx = 33;
-          }
-          int ny = 42;
-          var score = Integer.toString(Board.getLetterRating(board.getBoard()[j][i]));
-          g.drawString(score, i * 44 + nx, j * 44 + ny);
+          drawTile(g,
+                  board.getBoard()[j][i],
+                  i * SQUARE_OFFSET + OUTLINE_WEIGHT + SQUARE_SPACING,
+                  j * SQUARE_OFFSET + OUTLINE_WEIGHT + SQUARE_SPACING);
         }
       }
     }
 
-    // Draw the hand
-    int sp = 6;
-    int so = 0;
-    for (int i = 0; i < board.getHand().length; i++) {
-      if (!"".equals(board.getHand()[i])) {
-        if ("_".equals(board.getHand()[i]) || Character.isAlphabetic(board.getHand()[i].charAt(0))) {
-          g.drawImage(tile, 700 - sp, 20 + i * 44 - so, this);
-          g.setFont(FONT_LARGE);
-          if (Character.isUpperCase(board.getHand()[i].charAt(0))) {
-            g.drawString(board.getHand()[i] + "", 704 - sp, i * 44 + 54 - so);
-          }
-          g.setFont(FONT_SMALL);
-          int nx = 29 - sp;
-          if ("Q".equals(board.getHand()[i]) || "Z".equals(board.getHand()[i])) {
-            nx = 25 - sp;
-          }
-          int ny = 42 + 12 - so;
-          var score = Integer.toString(Board.getLetterRating(board.getHand()[i].charAt(0)));
-          g.drawString(score, 700 + nx, i * 44 + ny);
+    // Draw the selection box
+    if (board.getxSelection() != -1) {
+      drawSelectionBox(g,
+              board.getxSelection() * SQUARE_OFFSET + OUTLINE_WEIGHT + SQUARE_SPACING,
+              board.getySelection() * SQUARE_OFFSET + OUTLINE_WEIGHT + SQUARE_SPACING);
+    }
+
+    drawTileRack(g, RACK_X, RACK_Y);
+  }
+
+  /**
+   * Draw the tile rack and its tiles at the specified location
+   *
+   * @param g the graphics to draw on
+   * @param x the x position
+   * @param y the y position
+   */
+  private void drawTileRack(Graphics2D g, int x, int y) {
+    // Draw background
+    g.setColor(RACK_COLOUR);
+    g.fillRect(x, y, RACK_WIDTH, RACK_HEIGHT);
+
+    // Draw the tiles
+    g.setColor(TEXT_COLOUR);
+    var hand = board.getRack();
+    for (int i = 0; i < hand.length; i++) {
+      if (!"".equals(hand[i])) {
+        if ("_".equals(hand[i]) || Character.isAlphabetic(hand[i].charAt(0))) {
+          int tileX = x + RACK_TILE_SPACING;
+          int tileY = y + RACK_TILE_SPACING + i * (SQUARE_SIZE + RACK_TILE_SPACING);
+          drawTile(g, hand[i].charAt(0), tileX, tileY);
         }
       }
     }
 
     // Draw the selection
-    var xSelection = board.getxSelection();
-    var ySelection = board.getySelection();
-    if (xSelection != -1) {
-      g.setColor(Color.red);
-      g.fillRect(xSelection * 44 + 6, ySelection * 44 + 6, 4, 44);
-      g.fillRect(xSelection * 44 + 46, ySelection * 44 + 6, 4, 44);
-      g.fillRect(xSelection * 44 + 6, ySelection * 44 + 6, 44, 4);
-      g.fillRect(xSelection * 44 + 6, ySelection * 44 + 46, 44, 4);
+    if (board.getHandSelection() != -1) {
+      int tileX = x + RACK_TILE_SPACING;
+      int tileY = y + RACK_TILE_SPACING + board.getHandSelection() * (SQUARE_SIZE + RACK_TILE_SPACING);
+      drawSelectionBox(g, tileX, tileY);
+      g.setColor(SELECTION_COLOUR);
     }
-    var handSelection = board.getHandSelection();
-    if (handSelection != -1) {
-      g.setColor(Color.red);
-      g.fillRect(698 - sp, 18 + handSelection * 44, 4, 44);
-      g.fillRect(698 + 40 - sp, 18 + handSelection * 44, 4, 44);
-      g.fillRect(698 - sp, 18 + handSelection * 44, 44, 4);
-      g.fillRect(698 - sp, 58 + handSelection * 44, 44, 4);
+  }
+
+  /**
+   * Draw a selection box at the specified location
+   *
+   * @param g the graphics to draw on
+   * @param x the x position
+   * @param y the y position
+   */
+  private void drawSelectionBox(Graphics2D g, int x, int y) {
+    g.setColor(SELECTION_COLOUR);
+    int overlap = SELECTION_INTERIOR_OVERLAP;
+    int weight = SELECTION_LINE_WEIGHT;
+    int boxSize = SQUARE_SIZE + 2 * (weight - overlap);
+    g.fillRect(x + overlap - weight, y + overlap - weight, weight, boxSize);
+    g.fillRect(x + SQUARE_SIZE - overlap, y + overlap - weight, weight, boxSize);
+    g.fillRect(x + overlap - weight, y + overlap - weight, boxSize, weight);
+    g.fillRect(x + overlap - weight, y + SQUARE_SIZE - overlap, boxSize, weight);
+  }
+
+  /**
+   * Draw a tile at the specified location
+   *
+   * @param g the graphics to draw on
+   * @param letter the tile's letter
+   * @param x the x position
+   * @param y the y position
+   */
+  private void drawTile(Graphics2D g, char letter, int x, int y) {
+    // The blank tile image
+    g.drawImage(tile, x, y, this);
+
+    // The letter
+    g.setFont(FONT_LARGE);
+    g.drawString(letter + "", x + TILE_LETTER_X, y + TILE_LETTER_Y);
+
+    // The score
+    g.setFont(FONT_SMALL);
+    String score = Integer.toString(Board.getLetterRating(letter));
+    int scoreX = TILE_SCORE_X;
+    if (score.length() > 1) { // If it is a bigger number it needs more space
+      scoreX = TILE_SCORE_X - TILE_SCORE_X_CORRECTION;
     }
+    g.drawString(score, x + scoreX, y + TILE_SCORE_Y);
   }
 
   @Override
@@ -170,30 +236,34 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
 
   @Override
   public void mousePressed(MouseEvent e) {
-    int sp = 6;
-    var xSelection = (x - 6) / 44;
-    var ySelection  = (y - 6) / 44;
-    if (x > 665 || y > 665) {
-      xSelection = -1;
-      if (x > 698 - sp && x < 742 - sp && y > 18 && y < 326) {
-        board.setHandSelection((y - 18) / 44);
-        ySelection = -1;
-      } else {
-        board.setHandSelection(-1);
+    // Remove the previous selection
+    board.setHandSelection(-1);
+    board.setSelection(-1, -1);
+
+    int x = e.getX();
+    int y = e.getY();
+    int borderWidth = OUTLINE_WEIGHT + SQUARE_SPACING / 2;
+    if (borderWidth <= x && x < BOARD_SIZE - borderWidth &&
+            borderWidth <= y && y < BOARD_SIZE - borderWidth) {
+      // If the click is in the board
+      var xSelection = (x - borderWidth) / SQUARE_OFFSET;
+      var ySelection  = (y - borderWidth) / SQUARE_OFFSET;
+      board.setSelection(xSelection, ySelection);
+
+      // Right clicking inverts the case to identify a tile as blank
+      if (e.getButton() == MouseEvent.BUTTON3) {
+        char oldChar = board.getBoard()[ySelection][xSelection];
+        if (Character.isUpperCase(oldChar)) {
+          board.getBoard()[ySelection][xSelection] = Character.toLowerCase(oldChar);
+        } else {
+          board.getBoard()[ySelection][xSelection] = Character.toUpperCase(oldChar);
+        }
       }
-    } else {
-      board.setHandSelection(-1);
+    } else if (RACK_X <= x && x < RACK_X + RACK_WIDTH &&
+            RACK_Y + RACK_TILE_SPACING/2 <= y && y < RACK_Y + RACK_HEIGHT - RACK_TILE_SPACING/2) {
+      // If the click is in the rack
+      board.setHandSelection((y - RACK_Y + RACK_TILE_SPACING/2) / (SQUARE_SIZE + RACK_TILE_SPACING));
     }
-    if (e.getButton() == 3 && xSelection != -1) {
-      if (Character.isUpperCase(board.getBoard()[ySelection][xSelection])) {
-        board.getBoard()[ySelection][xSelection] =
-            Character.toLowerCase(board.getBoard()[ySelection][xSelection]);
-      } else {
-        board.getBoard()[ySelection][xSelection] =
-            Character.toUpperCase(board.getBoard()[ySelection][xSelection]);
-      }
-    }
-    board.setSelection(xSelection, ySelection);
     repaint();
   }
 
@@ -205,13 +275,4 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
 
   @Override
   public void mouseExited(MouseEvent e) {}
-
-  @Override
-  public void mouseDragged(MouseEvent e) {}
-
-  @Override
-  public void mouseMoved(MouseEvent e) {
-    x = e.getX();
-    y = e.getY();
-  }
 }

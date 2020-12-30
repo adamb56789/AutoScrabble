@@ -11,7 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Board extends JFrame implements KeyListener {
-  private final String[] hand = {"A", "B", "C", "D", "E", "F", "G"};
+  public static final int SIZE = 15;
+  public static final int RACK_CAPACITY = 7;
+  private final String[] rack = {"A", "B", "C", "D", "E", "F", "G"};
   private final WordFinder wordFinder;
   private final char[][] board = {
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
@@ -77,8 +79,8 @@ public class Board extends JFrame implements KeyListener {
     };
   }
 
-  public String[] getHand() {
-    return hand;
+  public String[] getRack() {
+    return rack;
   }
 
   public boolean[][] getOccupiedTiles() {
@@ -215,7 +217,7 @@ public class Board extends JFrame implements KeyListener {
         mode = 1;
       }
     }
-    for (String letter : hand) {
+    for (String letter : rack) {
       if ("_".equals(letter)) {
         mode = 2;
         break;
@@ -249,20 +251,20 @@ public class Board extends JFrame implements KeyListener {
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     }
-    var handTemp = new String[hand.length];
-    System.arraycopy(hand, 0, handTemp, 0, hand.length);
+    var handTemp = new String[rack.length];
+    System.arraycopy(rack, 0, handTemp, 0, rack.length);
     if (!useBlank) {
-      for (int i = 0; i < hand.length; i++) {
-        if ("_".equals(hand[i])) {
-          hand[i] = "";
+      for (int i = 0; i < rack.length; i++) {
+        if ("_".equals(rack[i])) {
+          rack[i] = "";
           break;
         }
       }
     }
 
     int blankL = -1;
-    for (int i = 0; i < hand.length; i++) { // Getting blank location
-      if (hand[i].equals("_")) {
+    for (int i = 0; i < rack.length; i++) { // Getting blank location
+      if (rack[i].equals("_")) {
         if (blankL != -1) {
           userMessage = "Only one blank allowed";
           setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
@@ -276,22 +278,22 @@ public class Board extends JFrame implements KeyListener {
     if (blankL == -1) { // No blank
       for (int i = 0; i < 15; i++) {
         int[][] select1 = {{i, 0}, {i, 14}};
-        validWords = joinArray(validWords, findWord(select1, hand), 5);
+        validWords = joinArray(validWords, findWord(select1, rack), 5);
         int[][] select2 = {{0, i}, {14, i}};
-        validWords = joinArray(validWords, findWord(select2, hand), 5);
+        validWords = joinArray(validWords, findWord(select2, rack), 5);
       }
     } else { // blank
       for (int i = 0; i < 15; i++) {
         int[][] select1 = {{i, 0}, {i, 14}};
-        validWords = joinArray(validWords, findWord(select1, hand), 5);
+        validWords = joinArray(validWords, findWord(select1, rack), 5);
         int[][] select2 = {{0, i}, {14, i}};
-        validWords = joinArray(validWords, findWord(select2, hand), 5);
+        validWords = joinArray(validWords, findWord(select2, rack), 5);
       }
     }
     String message = "";
     if (validWords.length == 0) {
       userMessage = "No words found";
-      System.arraycopy(handTemp, 0, hand, 0, hand.length);
+      System.arraycopy(handTemp, 0, rack, 0, rack.length);
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     } else {
@@ -335,7 +337,7 @@ public class Board extends JFrame implements KeyListener {
       userMessage += "in " + (finishTime - startTime) + " ms";
     }
     System.out.println(userMessage);
-    System.arraycopy(handTemp, 0, hand, 0, hand.length);
+    System.arraycopy(handTemp, 0, rack, 0, rack.length);
     setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     repaint();
   }
@@ -354,12 +356,12 @@ public class Board extends JFrame implements KeyListener {
     }
     if (handSelection != -1) {
       if (Character.isAlphabetic(e.getKeyChar()))
-        hand[handSelection] = (e.getKeyChar() + "").toUpperCase();
+        rack[handSelection] = (e.getKeyChar() + "").toUpperCase();
       if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-        hand[handSelection] = "";
+        rack[handSelection] = "";
       }
       if (e.getKeyChar() == '-') {
-        hand[handSelection] = "_";
+        rack[handSelection] = "_";
       }
     }
     repaint();
