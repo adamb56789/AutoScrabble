@@ -9,6 +9,9 @@ import java.awt.event.MouseMotionListener;
 import java.io.IOException;
 
 public class Gui extends JComponent implements MouseListener, MouseMotionListener {
+  public static final Font FONT_LARGE = new Font("Arial", Font.PLAIN, 30);
+  public static final Font FONT_MEDIUM = new Font("Arial", Font.PLAIN, 20);
+  public static final Font FONT_SMALL = new Font("Arial", Font.PLAIN, 12);
   private final Board board;
   boolean foobar = true;
   int x, y;
@@ -37,15 +40,18 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
   }
 
   @Override
-  public void paintComponent(Graphics g) {
+  protected void paintComponent(Graphics g) {
+    paintComponent((Graphics2D) g);
+  }
+
+  protected void paintComponent(Graphics2D g) {
     if (foobar) {
       addMouseListener(this);
       addMouseMotionListener(this);
       foobar = false;
     }
     super.paintComponent(g);
-    Graphics2D g2 = (Graphics2D) g;
-    g2.setRenderingHint(
+    g.setRenderingHint(
         RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 
     g.setColor(Color.decode("#C8C2A8"));
@@ -53,18 +59,15 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
 
     g.drawImage(tileBackground, 690, 16, this);
 
-    Font large = new Font("Arial", Font.PLAIN, 30);
-    Font medium = new Font("Arial", Font.PLAIN, 20);
-    Font small = new Font("Arial", Font.PLAIN, 12);
-    g2.setFont(medium);
-    g2.setColor(Color.black);
-    g2.drawString(board.getUserMessage(), 15, 710);
-    g2.setFont(small);
+    g.setFont(FONT_MEDIUM);
+    g.setColor(Color.black);
+    g.drawString(board.getUserMessage(), 15, 710);
+    g.setFont(FONT_SMALL);
     for (int i = 0; i < 15; i++) {
-      g2.drawString((char) (i + 97) + "", 25 + i * 44, 682);
-      g2.drawString((i + 1) + "", 673, (15 - i) * 44 - 11);
+      g.drawString((char) (i + 97) + "", 25 + i * 44, 682);
+      g.drawString((i + 1) + "", 673, (15 - i) * 44 - 11);
     }
-    g2.setFont(large);
+    g.setFont(FONT_LARGE);
 
     // draw the lines of the board
     g.setColor(Color.decode("#ECE8D9"));
@@ -99,22 +102,22 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
       for (int j = 0; j < 15; j++) {
         if (board.getBoard()[j][i] != ' ') {
           g.drawImage(tile, i * 44 + 8, j * 44 + 8, this);
-          g2.setFont(large);
+          g.setFont(FONT_LARGE);
           if (Character.isUpperCase(board.getBoard()[j][i])) {
-            g2.drawString(board.getBoard()[j][i] + "", i * 44 + 12, j * 44 + 40);
+            g.drawString(board.getBoard()[j][i] + "", i * 44 + 12, j * 44 + 40);
           } else if (Character.isLowerCase(board.getBoard()[j][i])) {
-            g2.setFont(small);
-            g2.drawString("(" + board.getBoard()[j][i] + ")", i * 44 + 18, j * 44 + 32);
-            g2.drawString("0", i * 44 + 37, j * 44 + 42);
+            g.setFont(FONT_SMALL);
+            g.drawString("(" + board.getBoard()[j][i] + ")", i * 44 + 18, j * 44 + 32);
+            g.drawString("0", i * 44 + 37, j * 44 + 42);
           }
-          g2.setFont(small);
+          g.setFont(FONT_SMALL);
           int nx = 37;
           if (board.getBoard()[j][i] == 'Q' || board.getBoard()[j][i] == 'Z') {
             nx = 33;
           }
           int ny = 42;
           var score = Integer.toString(Board.getLetterRating(board.getBoard()[j][i]));
-          g2.drawString(score, i * 44 + nx, j * 44 + ny);
+          g.drawString(score, i * 44 + nx, j * 44 + ny);
         }
       }
     }
@@ -126,18 +129,18 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
       if (!"".equals(board.getHand()[i])) {
         if ("_".equals(board.getHand()[i]) || Character.isAlphabetic(board.getHand()[i].charAt(0))) {
           g.drawImage(tile, 700 - sp, 20 + i * 44 - so, this);
-          g2.setFont(large);
+          g.setFont(FONT_LARGE);
           if (Character.isUpperCase(board.getHand()[i].charAt(0))) {
-            g2.drawString(board.getHand()[i] + "", 704 - sp, i * 44 + 54 - so);
+            g.drawString(board.getHand()[i] + "", 704 - sp, i * 44 + 54 - so);
           }
-          g2.setFont(small);
+          g.setFont(FONT_SMALL);
           int nx = 29 - sp;
           if ("Q".equals(board.getHand()[i]) || "Z".equals(board.getHand()[i])) {
             nx = 25 - sp;
           }
           int ny = 42 + 12 - so;
           var score = Integer.toString(Board.getLetterRating(board.getHand()[i].charAt(0)));
-          g2.drawString(score, 700 + nx, i * 44 + ny);
+          g.drawString(score, 700 + nx, i * 44 + ny);
         }
       }
     }
