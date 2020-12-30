@@ -105,10 +105,9 @@ public class Gui extends JComponent implements MouseListener {
 
     // Draw the outline of the board
     g.setColor(OUTLINE_COLOUR);
-    g.fillRect(0, 0, OUTLINE_WEIGHT, BOARD_SIZE);
-    g.fillRect(BOARD_SIZE - OUTLINE_WEIGHT, 0, OUTLINE_WEIGHT, BOARD_SIZE);
-    g.fillRect(0, 0, BOARD_SIZE, OUTLINE_WEIGHT);
-    g.fillRect(0, BOARD_SIZE - OUTLINE_WEIGHT, BOARD_SIZE, OUTLINE_WEIGHT);
+    g.setStroke(new BasicStroke(OUTLINE_WEIGHT));
+    int rectSize = BOARD_SIZE - OUTLINE_WEIGHT;
+    g.drawRect(OUTLINE_WEIGHT / 2, OUTLINE_WEIGHT / 2, rectSize, rectSize);
 
     // Draw the squares
     g.setColor(SQUARE_COLOUR);
@@ -196,13 +195,11 @@ public class Gui extends JComponent implements MouseListener {
    */
   private void drawSelectionBox(Graphics2D g, int x, int y) {
     g.setColor(SELECTION_COLOUR);
-    int overlap = SELECTION_INTERIOR_OVERLAP;
-    int weight = SELECTION_LINE_WEIGHT;
-    int boxSize = SQUARE_SIZE + 2 * (weight - overlap);
-    g.fillRect(x + overlap - weight, y + overlap - weight, weight, boxSize);
-    g.fillRect(x + SQUARE_SIZE - overlap, y + overlap - weight, weight, boxSize);
-    g.fillRect(x + overlap - weight, y + overlap - weight, boxSize, weight);
-    g.fillRect(x + overlap - weight, y + SQUARE_SIZE - overlap, boxSize, weight);
+    int rectSize = SQUARE_SIZE + SELECTION_LINE_WEIGHT - 2 * SELECTION_INTERIOR_OVERLAP;
+    int squareOffset = SELECTION_INTERIOR_OVERLAP - SELECTION_LINE_WEIGHT / 2;
+
+    g.setStroke(new BasicStroke(SELECTION_LINE_WEIGHT));
+    g.drawRect(x + squareOffset, y + squareOffset, rectSize, rectSize);
   }
 
   /**
