@@ -180,7 +180,8 @@ public class WordFinder {
         valid = false;
       }
 
-      if (!"".equals(l[Integer.parseInt(validList2[i][1]) + validList2[i][0].length()])) {
+      var i1 = Integer.parseInt(validList2[i][1]) + validList2[i][0].length();
+      if (i1 < l.length && !"".equals(l[i1])) {
         valid = false;
       }
 
