@@ -243,7 +243,7 @@ public class Board extends JFrame implements KeyListener {
     return wordScores;
   }
 
-  public void onEnter(boolean useBlank) {
+  public void onEnter() {
     double startTime = System.currentTimeMillis();
     String[] arr = {"check"};
     if (!validBoard(arr)) {
@@ -253,14 +253,13 @@ public class Board extends JFrame implements KeyListener {
     }
     var handTemp = new String[rack.length];
     System.arraycopy(rack, 0, handTemp, 0, rack.length);
-    if (!useBlank) {
-      for (int i = 0; i < rack.length; i++) {
-        if ("_".equals(rack[i])) {
-          rack[i] = "";
-          break;
-        }
+    for (int i = 0; i < rack.length; i++) {
+      if ("_".equals(rack[i])) {
+        rack[i] = "";
+        break;
       }
     }
+
 
     int blankL = -1;
     for (int i = 0; i < rack.length; i++) { // Getting blank location
@@ -360,7 +359,7 @@ public class Board extends JFrame implements KeyListener {
       if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
         rack[handSelection] = "";
       }
-      if (e.getKeyChar() == '-') {
+      if (e.getKeyChar() == ' ') {
         rack[handSelection] = "_";
       }
     }
@@ -371,11 +370,7 @@ public class Board extends JFrame implements KeyListener {
   public void keyPressed(KeyEvent e) {
     if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
       setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      onEnter(true);
-    }
-    if (e.getExtendedKeyCode() == KeyEvent.VK_SHIFT) {
-      setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      onEnter(false);
+      onEnter();
     }
     if (handSelection == -1) {
       if (e.getExtendedKeyCode() == KeyEvent.VK_LEFT && xSelection > 0) {

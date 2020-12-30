@@ -219,7 +219,9 @@ public class Gui extends JComponent implements MouseListener {
 
     // The letter
     g.setFont(FONT_LARGE);
-    g.drawString(letter + "", x + TILE_LETTER_X, y + TILE_LETTER_Y);
+    if (letter != '_') { // Do not draw if is a blank
+      g.drawString(String.valueOf(letter), x + TILE_LETTER_X, y + TILE_LETTER_Y);
+    }
 
     // The score
     g.setFont(FONT_SMALL);
