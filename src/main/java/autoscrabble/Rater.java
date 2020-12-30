@@ -226,7 +226,7 @@ public class Rater {
                 word[n][4] = "y";
               }
             }
-            j = 9000001;
+            break;
           }
         }
         length++;

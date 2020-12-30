@@ -59,7 +59,7 @@ public class WordFinder {
           }
 
           if (!validWord) {
-            k = 9000001;
+            break;
           }
         }
         if (validWord && m != 0) {
@@ -155,7 +155,7 @@ public class WordFinder {
                         validList2temp[validList2n][0].substring(0, o)
                             + Character.toLowerCase(validList2temp[validList2n][0].charAt(o))
                             + validList2temp[validList2n][0].substring(o + 1);
-                    o = 90000001;
+                    break;
                   }
                 }
               }
