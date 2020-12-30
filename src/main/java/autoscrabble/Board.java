@@ -383,9 +383,11 @@ public class Board extends JFrame implements KeyListener {
         ySelection++;
       }
     } else {
-      if (e.getExtendedKeyCode() == KeyEvent.VK_UP && handSelection > 0) {
+      if ((e.getExtendedKeyCode() == KeyEvent.VK_UP || e.getExtendedKeyCode() == KeyEvent.VK_LEFT)
+              && handSelection > 0) {
         handSelection--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && handSelection < 6) {
+      } else if ((e.getExtendedKeyCode() == KeyEvent.VK_DOWN || e.getExtendedKeyCode() == KeyEvent.VK_RIGHT)
+              && handSelection < 6) {
         handSelection++;
       }
     }
