@@ -113,49 +113,8 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
             nx = 33;
           }
           int ny = 42;
-          switch (board.getBoard()[j][i]) {
-            case 'A':
-            case 'E':
-            case 'I':
-            case 'L':
-            case 'N':
-            case 'O':
-            case 'R':
-            case 'S':
-            case 'T':
-            case 'U':
-              g2.drawString("1", i * 44 + nx, j * 44 + ny);
-              break;
-            case 'D':
-            case 'G':
-              g2.drawString("2", i * 44 + nx, j * 44 + ny);
-              break;
-            case 'B':
-            case 'C':
-            case 'M':
-            case 'P':
-              g2.drawString("3", i * 44 + nx, j * 44 + ny);
-              break;
-            case 'F':
-            case 'H':
-            case 'V':
-            case 'W':
-            case 'Y':
-              g2.drawString("4", i * 44 + nx, j * 44 + ny);
-              break;
-            case 'K':
-              g2.drawString("5", i * 44 + nx, j * 44 + ny);
-              break;
-            case 'J':
-            case 'X':
-              g2.drawString("8", i * 44 + nx, j * 44 + ny);
-              break;
-            case 'Q':
-            case 'Z':
-              g2.drawString("10", i * 44 + nx, j * 44 + ny);
-              break;
-            default:
-          }
+          var score = Integer.toString(Board.getLetterRating(board.getBoard()[j][i]));
+          g2.drawString(score, i * 44 + nx, j * 44 + ny);
         }
       }
     }
@@ -177,49 +136,8 @@ public class Gui extends JComponent implements MouseListener, MouseMotionListene
             nx = 25 - sp;
           }
           int ny = 42 + 12 - so;
-          switch (board.getHand()[i].charAt(0)) {
-            case 'A':
-            case 'E':
-            case 'I':
-            case 'U':
-            case 'T':
-            case 'S':
-            case 'R':
-            case 'O':
-            case 'N':
-            case 'L':
-              g2.drawString("1", 700 + nx, i * 44 + ny);
-              break;
-            case 'D':
-            case 'G':
-              g2.drawString("2", 700 + nx, i * 44 + ny);
-              break;
-            case 'B':
-            case 'C':
-            case 'P':
-            case 'M':
-              g2.drawString("3", 700 + nx, i * 44 + ny);
-              break;
-            case 'F':
-            case 'H':
-            case 'Y':
-            case 'W':
-            case 'V':
-              g2.drawString("4", 700 + nx, i * 44 + ny);
-              break;
-            case 'K':
-              g2.drawString("5", 700 + nx, i * 44 + ny);
-              break;
-            case 'J':
-            case 'X':
-              g2.drawString("8", 700 + nx, i * 44 + ny);
-              break;
-            case 'Q':
-            case 'Z':
-              g2.drawString("10", 700 + nx, i * 44 + ny);
-              break;
-            default:
-          }
+          var score = Integer.toString(Board.getLetterRating(board.getHand()[i].charAt(0)));
+          g2.drawString(score, 700 + nx, i * 44 + ny);
         }
       }
     }

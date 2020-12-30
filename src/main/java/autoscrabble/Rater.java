@@ -82,49 +82,7 @@ public class Rater {
   private int[] countPoints(String[][] word) {
     int[] rating = new int[word.length];
     for (int i = 0; i < word.length; i++) {
-      switch (word[i][0].charAt(0)) {
-        case 'A':
-        case 'U':
-        case 'T':
-        case 'S':
-        case 'R':
-        case 'O':
-        case 'N':
-        case 'L':
-        case 'I':
-        case 'E':
-          rating[i] += 1;
-          break;
-        case 'D':
-        case 'G':
-          rating[i] += 2;
-          break;
-        case 'B':
-        case 'C':
-        case 'P':
-        case 'M':
-          rating[i] += 3;
-          break;
-        case 'F':
-        case 'Y':
-        case 'W':
-        case 'V':
-        case 'H':
-          rating[i] += 4;
-          break;
-        case 'K':
-          rating[i] += 5;
-          break;
-        case 'J':
-        case 'X':
-          rating[i] += 8;
-          break;
-        case 'Q':
-        case 'Z':
-          rating[i] += 10;
-          break;
-        default:
-      }
+      rating[i] += Board.getLetterRating(word[i][0].charAt(0));
     }
     return rating;
   }

@@ -73,7 +73,9 @@ public class WordFinder {
     int[] handCount = new int[27];
 
     for (String s : h) {
-      handCount[Character.getNumericValue(s.charAt(0)) - 10]++;
+      if (Character.isAlphabetic(s.charAt(0))) {
+        handCount[Character.getNumericValue(s.charAt(0)) - 10]++;
+      }
     }
     String[][] validList2temp = new String[validList1n][2];
     if (mode == 2) validList2temp = new String[validList1n * 26][2];
