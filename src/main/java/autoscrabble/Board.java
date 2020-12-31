@@ -347,19 +347,16 @@ public class Board extends JFrame implements KeyListener {
       if (Character.isAlphabetic(e.getKeyChar())) {
         board[ySelection][xSelection] = Character.toUpperCase(e.getKeyChar());
         occupiedTiles[ySelection][xSelection] = true;
-      }
-      if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
+      } else if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
         board[ySelection][xSelection] = ' ';
         occupiedTiles[ySelection][xSelection] = false;
       }
-    }
-    if (handSelection != -1) {
-      if (Character.isAlphabetic(e.getKeyChar()))
+    } else if (handSelection != -1) {
+      if (Character.isAlphabetic(e.getKeyChar())) {
         rack[handSelection] = Character.toUpperCase(e.getKeyChar());
-      if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
+      } else if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
         rack[handSelection] = ' ';
-      }
-      if (e.getKeyChar() == ' ') {
+      } else if (e.getKeyChar() == ' ') {
         rack[handSelection] = '_';
       }
     }
@@ -371,8 +368,9 @@ public class Board extends JFrame implements KeyListener {
     if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
       setCursor(new Cursor(Cursor.WAIT_CURSOR));
       onEnter();
-    }
-    if (handSelection == -1) {
+    } else if (e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) {
+      userInterrupt = true;
+    } else if (handSelection == -1) {
       if (e.getExtendedKeyCode() == KeyEvent.VK_LEFT && xSelection > 0) {
         xSelection--;
       } else if (e.getExtendedKeyCode() == KeyEvent.VK_RIGHT && xSelection < 14) {
@@ -390,9 +388,6 @@ public class Board extends JFrame implements KeyListener {
               && handSelection < 6) {
         handSelection++;
       }
-    }
-    if (e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) {
-      userInterrupt = true;
     }
     repaint();
   }
