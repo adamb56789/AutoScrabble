@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Board extends JFrame implements KeyListener {
   public static final int SIZE = 15;
@@ -116,62 +118,48 @@ public class Board extends JFrame implements KeyListener {
     this.ySelection = ySelection;
   }
 
-  public boolean validBoard(String[] move) {
-    char[][] boardT = new char[15][15];
+  public boolean boardIsValid(String[] move) {
+    char[][] boardCopy = Arrays.stream(board).map(char[]::clone).toArray(char[][]::new);
 
-    for (int i = 0; i < board.length; i++) {
-      System.arraycopy(board[i], 0, boardT[i], 0, board[i].length);
+    // Place the word if there is one
+    if (move != null) {
+      placeWord(move, boardCopy);
     }
 
-    if (!"check".equals(move[0])) {
-      for (int i = 0; i < move[0].length(); i++) {
-        if ("h".equals(move[3])) {
-          boardT[Integer.parseInt(move[2])][Integer.parseInt(move[1]) + i] = move[0].charAt(i);
-        } else {
-          boardT[Integer.parseInt(move[2]) + i][Integer.parseInt(move[1])] = move[0].charAt(i);
-        }
-      }
-    }
+    return getLines(boardCopy).stream()
+            .map(arr -> arr.split(" +")) // Split each line around spaces
+            .flatMap(Arrays::stream) // Merge the result
+            .filter(w -> w.length() > 1) // Filter out blank or 1 letter words
+            .anyMatch(wordFinder::isWord); // Check against the dictionary
+  }
 
-    char[][] lines = new char[30][15];
-
+  /**
+   * Get strings of the horizontal and vertical lines on the board
+   *
+   * @param board the board
+   * @return a list of Strings
+   */
+  private List<String> getLines(char[][] board) {
+    char[][] lines = new char[board.length * 2][board.length];
     // Copy rows
-    System.arraycopy(boardT, 0, lines, 0, 15);
+    System.arraycopy(board, 0, lines, 0, 15);
     // Copy columns
-    for (int i = 15; i < 30; i++) {
-      for (int j = 0; j < 15; j++) {
-        lines[i][j] = boardT[j][i - 15];
+    for (int i = board.length; i < board.length * 2; i++) {
+      for (int j = 0; j < board.length; j++) {
+        lines[i][j] = board[j][i - board.length];
       }
     }
+    return Arrays.stream(lines).map(String::valueOf).collect(Collectors.toList());
+  }
 
-    for (int i = 0; i < 30; i++) {
-      for (int j = 0; j < 14; j++) {
-        if (Character.isAlphabetic(lines[i][j]) && Character.isAlphabetic(lines[i][j + 1])) {
-          StringBuilder word = new StringBuilder(lines[i][j] + "");
-          int k = 1;
-
-          if (!Character.isAlphabetic(lines[i][j + k])) {
-            word = new StringBuilder();
-          }
-
-          int f = 0;
-
-          while (j + k < 15 && Character.isAlphabetic(lines[i][j + k])) {
-            word.append(lines[i][j + k]);
-            k++;
-            f++;
-          }
-
-          j += f;
-
-          if (!wordFinder.isWord(word.toString())) {
-            return false;
-          }
-        }
+  private void placeWord(String[] word, char[][] board) {
+    for (int i = 0; i < word[0].length(); i++) {
+      if ("h".equals(word[3])) {
+        board[Integer.parseInt(word[2])][Integer.parseInt(word[1]) + i] = word[0].charAt(i);
+      } else {
+        board[Integer.parseInt(word[2]) + i][Integer.parseInt(word[1])] = word[0].charAt(i);
       }
     }
-
-    return true;
   }
 
   public String[][] joinArray(String[][] array1, String[][] array2, int l) {
@@ -245,8 +233,7 @@ public class Board extends JFrame implements KeyListener {
 
   public void onEnter() {
     double startTime = System.currentTimeMillis();
-    String[] arr = {"check"};
-    if (!validBoard(arr)) {
+    if (!boardIsValid(null)) {
       userMessage = "Current board not valid";
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
@@ -303,7 +290,7 @@ public class Board extends JFrame implements KeyListener {
       for (String[] word : validWords) {
         message =
             "Checking word " + word[0] + " which would score " + word[4] + " (press ESC to cancel)";
-        if (validBoard(word)) {
+        if (boardIsValid(word)) {
           message = "Found ";
           message +=
               word[0]
