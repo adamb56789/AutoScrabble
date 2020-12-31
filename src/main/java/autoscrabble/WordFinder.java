@@ -1,5 +1,7 @@
 package autoscrabble;
 
+import java.util.Arrays;
+
 public class WordFinder {
   private String[][] characters;
   private String[] dictionary;
@@ -22,12 +24,8 @@ public class WordFinder {
   }
 
   public boolean isWord(String s) {
-    for (String value : dictionary) {
-      if (s.toUpperCase().equals(value)) {
-        return true;
-      }
-    }
-    return false;
+    // The binary search is >= 0 if the key is found
+    return Arrays.binarySearch(dictionary, s.toUpperCase()) >= 0;
   }
 
   public String[][] getWords(String[] l, char[] h, int mode) {

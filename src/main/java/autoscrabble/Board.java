@@ -126,7 +126,8 @@ public class Board extends JFrame implements KeyListener {
       placeWord(move, boardCopy);
     }
 
-    return getLines(boardCopy).stream()
+    return getLines(boardCopy) // Get all horizontal and vertical lines
+            .stream()
             .map(arr -> arr.split(" +")) // Split each line around spaces
             .flatMap(Arrays::stream) // Merge the result
             .filter(w -> w.length() > 1) // Filter out blank or 1 letter words
@@ -142,7 +143,7 @@ public class Board extends JFrame implements KeyListener {
   private List<String> getLines(char[][] board) {
     char[][] lines = new char[board.length * 2][board.length];
     // Copy rows
-    System.arraycopy(board, 0, lines, 0, 15);
+    System.arraycopy(board, 0, lines, 0, board.length);
     // Copy columns
     for (int i = board.length; i < board.length * 2; i++) {
       for (int j = 0; j < board.length; j++) {
