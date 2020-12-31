@@ -13,7 +13,7 @@ import java.util.Arrays;
 public class Board extends JFrame implements KeyListener {
   public static final int SIZE = 15;
   public static final int RACK_CAPACITY = 7;
-  private final String[] rack = {"A", "B", "C", "D", "E", "F", "G"};
+  private final char[] rack = "ABCDEFG".toCharArray();
   private final WordFinder wordFinder;
   private final char[][] board = {
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
@@ -79,7 +79,7 @@ public class Board extends JFrame implements KeyListener {
     };
   }
 
-  public String[] getRack() {
+  public char[] getRack() {
     return rack;
   }
 
@@ -181,7 +181,7 @@ public class Board extends JFrame implements KeyListener {
     return array3;
   }
 
-  public String[][] findWord(int[][] s, String[] Hand) {
+  public String[][] findWord(int[][] s, char[] Hand) {
     int gapL = Math.abs(s[0][0] - s[1][0]) + Math.abs(s[0][1] - s[1][1]) + 1;
     String[] location = new String[gapL];
     if (s[0][1] - s[1][1] == 0) { // Horizontal
@@ -217,8 +217,8 @@ public class Board extends JFrame implements KeyListener {
         mode = 1;
       }
     }
-    for (String letter : rack) {
-      if ("_".equals(letter)) {
+    for (char letter : rack) {
+      if (letter == '_') {
         mode = 2;
         break;
       }
@@ -251,11 +251,11 @@ public class Board extends JFrame implements KeyListener {
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     }
-    var handTemp = new String[rack.length];
+    var handTemp = new char[rack.length];
     System.arraycopy(rack, 0, handTemp, 0, rack.length);
     for (int i = 0; i < rack.length; i++) {
-      if ("_".equals(rack[i])) {
-        rack[i] = "";
+      if (rack[i] == '_') {
+        rack[i] = ' ';
         break;
       }
     }
@@ -263,7 +263,7 @@ public class Board extends JFrame implements KeyListener {
 
     int blankL = -1;
     for (int i = 0; i < rack.length; i++) { // Getting blank location
-      if (rack[i].equals("_")) {
+      if (rack[i] == '_') {
         if (blankL != -1) {
           userMessage = "Only one blank allowed";
           setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
@@ -355,12 +355,12 @@ public class Board extends JFrame implements KeyListener {
     }
     if (handSelection != -1) {
       if (Character.isAlphabetic(e.getKeyChar()))
-        rack[handSelection] = (e.getKeyChar() + "").toUpperCase();
+        rack[handSelection] = Character.toUpperCase(e.getKeyChar());
       if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-        rack[handSelection] = "";
+        rack[handSelection] = ' ';
       }
       if (e.getKeyChar() == ' ') {
-        rack[handSelection] = "_";
+        rack[handSelection] = '_';
       }
     }
     repaint();

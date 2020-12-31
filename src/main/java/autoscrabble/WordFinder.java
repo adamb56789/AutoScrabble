@@ -30,7 +30,7 @@ public class WordFinder {
     return false;
   }
 
-  public String[][] getWords(String[] l, String[] h, int mode) {
+  public String[][] getWords(String[] l, char[] h, int mode) {
     // Counting max possible length of words, possible future sorting???
 
     String[][] validList1 = new String[dictionary.length][2];
@@ -72,9 +72,9 @@ public class WordFinder {
     }
     int[] handCount = new int[27];
 
-    for (String s : h) {
-      if (Character.isAlphabetic(s.charAt(0))) {
-        handCount[Character.getNumericValue(s.charAt(0)) - 10]++;
+    for (char c : h) {
+      if (Character.isAlphabetic(c)) {
+        handCount[Character.getNumericValue(c) - 10]++;
       }
     }
     String[][] validList2temp = new String[validList1n][2];

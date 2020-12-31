@@ -166,13 +166,13 @@ public class Gui extends JComponent implements MouseListener {
 
     // Draw the tiles
     g.setColor(TEXT_COLOUR);
-    var hand = board.getRack();
+    char[] hand = board.getRack();
     for (int i = 0; i < hand.length; i++) {
-      if (!"".equals(hand[i])) {
-        if ("_".equals(hand[i]) || Character.isAlphabetic(hand[i].charAt(0))) {
+      if (hand[i] != ' ') {
+        if (hand[i] == '_' || Character.isAlphabetic(hand[i])) {
           int tileX = x + RACK_TILE_SPACING;
           int tileY = y + RACK_TILE_SPACING + i * (SQUARE_SIZE + RACK_TILE_SPACING);
-          drawTile(g, hand[i].charAt(0), tileX, tileY);
+          drawTile(g, hand[i], tileX, tileY);
         }
       }
     }
