@@ -1,13 +1,18 @@
-package autoscrabble;
+package autoscrabble.word;
 
-public class Word {
-  private String word;
+import autoscrabble.Direction;
+import autoscrabble.Rater;
+
+/**
+ * A word with a specified starting location and direction.
+ */
+public class LocatedWord extends Word{
   private int x;
   private int y;
   private Direction direction;
 
-  public Word(String word, int x, int y, Direction direction) {
-    this.word = word;
+  public LocatedWord(String word, int x, int y, Direction direction) {
+    super(word);
     this.x = x;
     this.y = y;
     this.direction = direction;
@@ -15,14 +20,6 @@ public class Word {
 
   public RatedWord getRatedWord(Rater rater) {
     return new RatedWord(word, x, y, direction, rater.rate(this));
-  }
-
-  public String getWord() {
-    return word;
-  }
-
-  public void setWord(String word) {
-    this.word = word;
   }
 
   public int getX() {

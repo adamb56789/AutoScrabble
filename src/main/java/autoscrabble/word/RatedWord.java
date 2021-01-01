@@ -1,6 +1,11 @@
-package autoscrabble;
+package autoscrabble.word;
 
-public class RatedWord extends Word {
+import autoscrabble.Direction;
+
+/**
+ * A word with a rating as well as location and direction.
+ */
+public class RatedWord extends LocatedWord {
   private double rating;
 
   public RatedWord(String word, int x, int y, Direction direction, double rating) {

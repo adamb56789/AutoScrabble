@@ -1,5 +1,9 @@
 package autoscrabble;
 
+import autoscrabble.word.LineWord;
+import autoscrabble.word.RatedWord;
+import autoscrabble.word.LocatedWord;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -119,7 +123,7 @@ public class Board extends JFrame implements KeyListener {
     this.ySelection = ySelection;
   }
 
-  public boolean boardIsValid(Word move) {
+  public boolean boardIsValid(LocatedWord move) {
     char[][] boardCopy = Arrays.stream(board).map(char[]::clone).toArray(char[][]::new);
 
     // Place the word if there is one
@@ -154,7 +158,7 @@ public class Board extends JFrame implements KeyListener {
     return Arrays.stream(lines).map(String::valueOf).collect(Collectors.toList());
   }
 
-  private void placeWord(Word word, char[][] board) {
+  private void placeWord(LocatedWord word, char[][] board) {
     for (int i = 0; i < word.getWord().length(); i++) {
       if (word.getDirection() == Direction.HORIZONTAL) {
         board[word.getY()][word.getX() + i] = word.getWord().charAt(i);
@@ -175,17 +179,17 @@ public class Board extends JFrame implements KeyListener {
     }
 
     // Get a list of possible words
-    String[][] words = wordFinder.getWords(line.toCharArray(), rack);
+    List<LineWord> words = wordFinder.getWords(line.toCharArray(), rack);
 
     // Rate all of the words
     var ratedWords = new ArrayList<RatedWord>();
     var rater = new Rater(this);
-    for (String[] word : words) {
-      Word unratedWord;
+    for (var word : words) {
+      LocatedWord unratedWord;
       if (direction == Direction.HORIZONTAL) {
-        unratedWord = new Word(word[0], Integer.parseInt(word[1]), index, direction);
+        unratedWord = new LocatedWord(word.getWord(), word.getStartIndex(), index, direction);
       } else { // Vertical
-        unratedWord = new Word(word[0], index, Integer.parseInt(word[1]), direction);
+        unratedWord = new LocatedWord(word.getWord(), index, word.getStartIndex(), direction);
       }
       ratedWords.add((unratedWord.getRatedWord(rater)));
     }

@@ -1,5 +1,7 @@
 package autoscrabble;
 
+import autoscrabble.word.LocatedWord;
+
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
 public class Rater {
   public static final char[][] BONUSES = {
@@ -87,7 +89,7 @@ public class Rater {
     return rating;
   }
 
-  public int rate(Word word) {
+  public int rate(LocatedWord word) {
     char[][] boardT = new char[15][15];
     boolean[][] rated = new boolean[15][15];
     int rating = 0;
