@@ -1,5 +1,6 @@
 package autoscrabble;
 
+import autoscrabble.word.Letter;
 import autoscrabble.word.LocatedWord;
 
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
@@ -27,13 +28,14 @@ public class Rater {
     this.board = board;
   }
 
-  private int rateWord(String[][] word, char[] location) {
-    int[] rating = countPoints(word);
-    int total = 0;
-
-    for (int i = 0; i < rating.length; i++) {
-      total += rateLetter(word[i], rating[i]);
+  private double rateWord(Letter[] word, char[] location) {
+    double total = 0;
+    // Add up the scores of the letters
+    for (Letter letter : word) {
+      total += rateLetter(letter);
     }
+
+    // Apply any potential word multipliers
     total *= wordMultiplier(word);
 
     // Add 50 if 7 letters are used
@@ -50,43 +52,32 @@ public class Rater {
     return total;
   }
 
-  private int rateLetter(String[] c, int base) {
-    if ("y".equals(c[4])) {
+  private int rateLetter(Letter letter) {
+    int letterScore = letter.letterScore();
+    if (Character.isLowerCase(letter.getChar())) {
       return 0;
     }
-    if ("n".equals(c[3])) {
-      return base;
+    if (!letter.bonusAllowed()) {
+      return letterScore;
     }
-    if (BONUSES[Integer.parseInt(c[1])][Integer.parseInt(c[2])] == 'l') {
-      return base * 2;
-    }
-    if (BONUSES[Integer.parseInt(c[1])][Integer.parseInt(c[2])] == 'L') {
-      return base * 3;
-    }
-    return base;
+    return switch (BONUSES[letter.getY()][letter.getX()]) {
+      case 'l' -> letterScore * 2;
+      case 'L' -> letterScore * 3;
+      default -> letterScore;
+    };
   }
 
-  private int wordMultiplier(String[][] c) {
-    int m = 1;
-    for (String[] strings : c) {
-      if (!"n".equals(strings[3])) {
-        if (BONUSES[Integer.parseInt(strings[1])][Integer.parseInt(strings[2])] == 'w') {
-          m *= 2;
-        }
-        if (BONUSES[Integer.parseInt(strings[1])][Integer.parseInt(strings[2])] == 'W') {
-          m *= 3;
+  private int wordMultiplier(Letter[] word) {
+    int multiplier = 1;
+    for (var letter : word) {
+      if (letter.bonusAllowed()) {
+        switch (BONUSES[letter.getY()][letter.getX()]) {
+          case 'w' -> multiplier *= 2;
+          case 'W' -> multiplier *= 3;
         }
       }
     }
-    return m;
-  }
-
-  private int[] countPoints(String[][] word) {
-    int[] rating = new int[word.length];
-    for (int i = 0; i < word.length; i++) {
-      rating[i] += Board.getLetterRating(word[i][0].charAt(0));
-    }
-    return rating;
+    return multiplier;
   }
 
   public int rate(LocatedWord word) {
@@ -142,7 +133,7 @@ public class Rater {
     }
     for (int i = 0; i < 30; i++) { // Main loop to go through and add ratings
       if (relevantLines[i]) {
-        String[][] wordData = null;
+        Letter[] letterData = null;
         int length = 0;
         for (int j = 0; j < 15; j++) {
           if (!ratedLines[i][j] && Character.isAlphabetic(lines[i][j])) {
@@ -167,29 +158,22 @@ public class Rater {
               l++;
             }
             length--;
-            wordData = new String[l - k - 2][5];
+            letterData = new Letter[l - k - 2];
             for (int m = k + 1, n = 0; m < l - 1; m++, n++) {
-              wordData[n][0] = lines[i][m] + "";
               if (i < 15) { // Horizontal
-                wordData[n][1] = i + "";
-                wordData[n][2] = m + "";
+                letterData[n] = new Letter(lines[i][m], m, i, !ratedLines[i][m]);
               } else { // Vertical
-                wordData[n][1] = m + "";
-                wordData[n][2] = i - 15 + "";
-              }
-              if (ratedLines[i][m]) {
-                wordData[n][3] = "n";
-              }
-              if (Character.isLowerCase(wordData[n][0].charAt(0))) {
-                wordData[n][4] = "y";
+                letterData[n] = new Letter(lines[i][m], i - 15, m, !ratedLines[i][m]);
               }
             }
             break;
           }
         }
+
         length++;
         if (length > 1) {
-          rating += rateWord(wordData, oldLines[i]);
+          assert letterData != null;
+          rating += rateWord(letterData, oldLines[i]);
         }
       }
     }

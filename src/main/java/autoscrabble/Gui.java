@@ -1,5 +1,7 @@
 package autoscrabble;
 
+import autoscrabble.word.Letter;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -222,7 +224,7 @@ public class Gui extends JComponent implements MouseListener {
 
     // The score
     g.setFont(FONT_SMALL);
-    String score = Integer.toString(Board.getLetterRating(letter));
+    String score = Integer.toString(Letter.letterScore(letter));
     int scoreX = TILE_SCORE_X;
     if (score.length() > 1) { // If it is a bigger number it needs more space
       scoreX = TILE_SCORE_X - TILE_SCORE_X_CORRECTION;
