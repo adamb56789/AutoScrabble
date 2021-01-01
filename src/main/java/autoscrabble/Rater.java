@@ -3,6 +3,8 @@ package autoscrabble;
 import autoscrabble.word.Letter;
 import autoscrabble.word.LocatedWord;
 
+import java.util.stream.IntStream;
+
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
 public class Rater {
   public static final char[][] BONUSES = {
@@ -60,11 +62,14 @@ public class Rater {
     if (!letter.bonusAllowed()) {
       return letterScore;
     }
-    return switch (BONUSES[letter.getY()][letter.getX()]) {
-      case 'l' -> letterScore * 2;
-      case 'L' -> letterScore * 3;
-      default -> letterScore;
-    };
+    switch (BONUSES[letter.getY()][letter.getX()]) {
+      case 'l':
+        return letterScore * 2;
+      case 'L':
+        return letterScore * 3;
+      default:
+        return letterScore;
+    }
   }
 
   private int wordMultiplier(Letter[] word) {
@@ -72,8 +77,12 @@ public class Rater {
     for (var letter : word) {
       if (letter.bonusAllowed()) {
         switch (BONUSES[letter.getY()][letter.getX()]) {
-          case 'w' -> multiplier *= 2;
-          case 'W' -> multiplier *= 3;
+          case 'w':
+            multiplier *= 2;
+            break;
+          case 'W':
+            multiplier *= 3;
+            break;
         }
       }
     }
@@ -81,37 +90,38 @@ public class Rater {
   }
 
   public int rate(LocatedWord word) {
-    char[][] boardT = new char[15][15];
+    char[][] boardCopy = new char[15][15];
     boolean[][] rated = new boolean[15][15];
     int rating = 0;
 
     for (int i = 0; i < 15; i++) {
-      System.arraycopy(board.getBoard()[i], 0, boardT[i], 0, 15);
+      System.arraycopy(board.getBoard()[i], 0, boardCopy[i], 0, 15);
     }
     for (int i = 0; i < 15; i++) {
       System.arraycopy(board.getOccupiedTiles()[i], 0, rated[i], 0, 15);
     }
     for (int i = 0; i < word.getWord().length(); i++) {
       if (word.getDirection() == Direction.HORIZONTAL) {
-        boardT[word.getY()][word.getX() + i] = word.getWord().charAt(i);
+        boardCopy[word.getY()][word.getX() + i] = word.getWord().charAt(i);
       } else {
-        boardT[word.getY() + i][word.getX()] = word.getWord().charAt(i);
+        boardCopy[word.getY() + i][word.getX()] = word.getWord().charAt(i);
       }
     }
 
-    char[][] lines = new char[30][15];
-    char[][] oldLines = new char[30][15];
-    boolean[][] ratedLines = new boolean[30][15];
-    boolean[] relevantLines = new boolean[30];
+    var size = board.getBoard().length;
+    char[][] lines = new char[size * 2][size];
+    char[][] oldLines = new char[size * 2][size];
+    boolean[][] alreadyRatedLines = new boolean[size * 2][size];
+    boolean[] relevantLines = new boolean[size * 2];
 
     // Copy rows
-    System.arraycopy(boardT, 0, lines, 0, 15);
-    System.arraycopy(rated, 0, ratedLines, 0, 15);
+    System.arraycopy(boardCopy, 0, lines, 0, size);
+    System.arraycopy(rated, 0, alreadyRatedLines, 0, size);
     // Copy columns
-    for (int i = 15; i < 30; i++) {
-      for (int j = 0; j < 15; j++) {
-        lines[i][j] = boardT[j][i - 15];
-        ratedLines[i][j] = rated[j][i - 15];
+    for (int i = size; i < size * 2; i++) {
+      for (int j = 0; j < size; j++) {
+        lines[i][j] = boardCopy[j][i - size];
+        alreadyRatedLines[i][j] = rated[j][i - size];
       }
     }
 
@@ -126,53 +136,46 @@ public class Rater {
 
     for (int i = 0; i < 30; i++) { // Get relevant lines
       for (int j = 0; j < 15; j++) {
-        if (!ratedLines[i][j] && Character.isAlphabetic(lines[i][j])) {
+        if (!alreadyRatedLines[i][j] && Character.isAlphabetic(lines[i][j])) {
           relevantLines[i] = true;
         }
       }
     }
-    for (int i = 0; i < 30; i++) { // Main loop to go through and add ratings
+
+    for (int i = 0; i < size * 2; i++) { // Main loop to go through and add ratings
       if (relevantLines[i]) {
-        Letter[] letterData = null;
-        int length = 0;
-        for (int j = 0; j < 15; j++) {
-          if (!ratedLines[i][j] && Character.isAlphabetic(lines[i][j])) {
-            boolean foobar = true;
-            int k = j - 1;
-            while (foobar) { // Count backwards
-              length++;
-              if (k < 0 || k >= lines[0].length || !Character.isAlphabetic(lines[i][k])) {
-                foobar = false;
-              }
-              k--;
-            }
-            k++;
-            foobar = true;
-            int l = j + 1;
-            length--;
-            while (foobar) { // Count forwards
-              length++;
-              if (l < 0 || l >= lines[0].length || !Character.isAlphabetic(lines[i][l])) {
-                foobar = false;
-              }
-              l++;
-            }
-            length--;
-            letterData = new Letter[l - k - 2];
-            for (int m = k + 1, n = 0; m < l - 1; m++, n++) {
-              if (i < 15) { // Horizontal
-                letterData[n] = new Letter(lines[i][m], m, i, !ratedLines[i][m]);
-              } else { // Vertical
-                letterData[n] = new Letter(lines[i][m], i - 15, m, !ratedLines[i][m]);
-              }
-            }
-            break;
+        // Find an index which is inside the word we need to rate by scanning through the line,
+        // filtering out already rated and empty tiles, and choosing the first.
+        int i1 = i; // final variable for lambda
+        int indexInWord =
+            IntStream.range(0, size)
+                .filter(j -> !alreadyRatedLines[i1][j] && Character.isAlphabetic(lines[i1][j]))
+                .findFirst()
+                .orElseThrow();
+
+        // Move backwards to find the index of start of the word (inclusive)
+        int k = indexInWord - 1;
+        while (k >= 0 && k < size && Character.isAlphabetic(lines[i][k])) {
+          k--;
+        }
+        k++;
+
+        // Move forwards to find the index of end of the word (exclusive)
+        int l = indexInWord + 1;
+        while (l >= 0 && l < size && Character.isAlphabetic(lines[i][l])) {
+          l++;
+        }
+
+        var letterData = new Letter[l - k];
+        for (int m = k, n = 0; m < l; m++, n++) {
+          if (i < size) { // Horizontal
+            letterData[n] = new Letter(lines[i][m], m, i, !alreadyRatedLines[i][m]);
+          } else { // Vertical
+            letterData[n] = new Letter(lines[i][m], i - size, m, !alreadyRatedLines[i][m]);
           }
         }
 
-        length++;
-        if (length > 1) {
-          assert letterData != null;
+        if (letterData.length > 1) {
           rating += rateWord(letterData, oldLines[i]);
         }
       }

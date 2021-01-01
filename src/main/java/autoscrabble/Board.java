@@ -1,8 +1,8 @@
 package autoscrabble;
 
 import autoscrabble.word.LineWord;
-import autoscrabble.word.RatedWord;
 import autoscrabble.word.LocatedWord;
+import autoscrabble.word.RatedWord;
 
 import javax.swing.*;
 import java.awt.*;
@@ -39,7 +39,7 @@ public class Board extends JFrame implements KeyListener {
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
     {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
   };
-  private final boolean[][] occupiedTiles = new boolean[15][15];
+  private final boolean[][] occupiedTiles = new boolean[board.length][board.length];
   private boolean userInterrupt;
   private String userMessage = "";
   private int handSelection = -1;
@@ -79,6 +79,10 @@ public class Board extends JFrame implements KeyListener {
     return board;
   }
 
+  public char[][] getBoardCopy() {
+    return Arrays.stream(board).map(char[]::clone).toArray(char[][]::new);
+  }
+
   public String getUserMessage() {
     return userMessage;
   }
@@ -105,7 +109,7 @@ public class Board extends JFrame implements KeyListener {
   }
 
   public boolean boardIsValid(LocatedWord move) {
-    char[][] boardCopy = Arrays.stream(board).map(char[]::clone).toArray(char[][]::new);
+    char[][] boardCopy = getBoardCopy();
 
     // Place the word if there is one
     if (move != null) {
@@ -113,12 +117,22 @@ public class Board extends JFrame implements KeyListener {
     }
 
     return getLines(boardCopy) // Get all horizontal and vertical lines
-            .stream()
-            .map(arr -> arr.split(" +")) // Split each line around spaces
-            .flatMap(Arrays::stream) // Merge the result
-            .filter(w -> w.length() > 1) // Filter out blank or 1 letter words
-            .allMatch(wordFinder::isWord); // Check against the dictionary
+        .stream()
+        .map(arr -> arr.split(" +")) // Split each line around spaces
+        .flatMap(Arrays::stream) // Merge the result
+        .filter(w -> w.length() > 1) // Filter out blank or 1 letter words
+        .allMatch(wordFinder::isWord); // Check against the dictionary
   }
+
+  /**
+   * Get a list of boolean arrays of the horizontal and vertical lines on the given boolean board
+   *
+   * @param board the board
+   * @return a list of Bool arrays
+   */
+//  public List<Boolean[]> getLines(boolean[][] board) {
+//
+//  }
 
   /**
    * Get strings of the horizontal and vertical lines on the board
@@ -126,20 +140,23 @@ public class Board extends JFrame implements KeyListener {
    * @param board the board
    * @return a list of Strings
    */
-  private List<String> getLines(char[][] board) {
-    char[][] lines = new char[board.length * 2][board.length];
-    // Copy rows
-    System.arraycopy(board, 0, lines, 0, board.length);
-    // Copy columns
-    for (int i = board.length; i < board.length * 2; i++) {
+  public List<String> getLines(char[][] board) {
+    // Rows
+    var lines = Arrays.stream(board).map(String::valueOf).collect(Collectors.toList());
+
+    // Columns
+    for (int i = 0; i < board.length; i++) {
+      char[] col = new char[board.length];
       for (int j = 0; j < board.length; j++) {
-        lines[i][j] = board[j][i - board.length];
+        col[j] = board[j][i];
       }
+      lines.add(String.valueOf(col));
     }
-    return Arrays.stream(lines).map(String::valueOf).collect(Collectors.toList());
+    return lines;
   }
 
-  private void placeWord(LocatedWord word, char[][] board) {
+  /** Place the given word on the given board. */
+  public void placeWord(LocatedWord word, char[][] board) {
     for (int i = 0; i < word.getWord().length(); i++) {
       if (word.getDirection() == Direction.HORIZONTAL) {
         board[word.getY()][word.getX() + i] = word.getWord().charAt(i);
@@ -153,7 +170,8 @@ public class Board extends JFrame implements KeyListener {
    * Generate all possible words that could be placed on the given line. The index is the row or
    * column index of the line.
    */
-  private List<RatedWord> generateWordsOnLine(char[] rack, String line, int index, Direction direction) {
+  private List<RatedWord> generateWordsOnLine(
+      char[] rack, String line, int index, Direction direction) {
     // If line is blank then skip
     if (line.isBlank()) {
       return null;
@@ -203,14 +221,16 @@ public class Board extends JFrame implements KeyListener {
 
     // Find all possible words
     var lines = getLines(board);
-    var words = IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-            .parallel() // I am speed
-            .mapToObj(i -> {
-              // Get the row index if horizontal or col index if vertical, and the direction
-              int index = i < board.length ? i : i - board.length;
-              var direction = i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
-              return generateWordsOnLine(rack, lines.get(i), index, direction);
-            })
+    var words =
+        IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
+//            .parallel() // I am speed
+            .mapToObj(
+                i -> {
+                  // Get the row index if horizontal or col index if vertical, and the direction
+                  int index = i < board.length ? i : i - board.length;
+                  var direction = i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
+                  return generateWordsOnLine(rack, lines.get(i), index, direction);
+                })
             .filter(Objects::nonNull) // Remove any lines that were skipped
             .flatMap(List::stream) // Merge lists
             .collect(Collectors.toList());
@@ -226,7 +246,9 @@ public class Board extends JFrame implements KeyListener {
       // Get the first one that is valid
       for (var word : words) {
         if (boardIsValid(word)) {
-          userMessage = String.format("Found %s at (%c%d) %s, scoring at least %s, ",
+          userMessage =
+              String.format(
+                  "Found %s at (%c%d) %s, scoring at least %s, ",
                   word.getWord(),
                   ((char) (word.getX() + 97)),
                   (15 - word.getY()),
@@ -242,7 +264,8 @@ public class Board extends JFrame implements KeyListener {
     }
 
     long finishTime = System.currentTimeMillis();
-    userMessage += String.format("%s %d ms", userInterrupt ? "after" : "in", (finishTime - startTime));
+    userMessage +=
+        String.format("%s %d ms", userInterrupt ? "after" : "in", (finishTime - startTime));
     userInterrupt = false;
     System.out.println(userMessage);
     setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
@@ -290,10 +313,11 @@ public class Board extends JFrame implements KeyListener {
       }
     } else {
       if ((e.getExtendedKeyCode() == KeyEvent.VK_UP || e.getExtendedKeyCode() == KeyEvent.VK_LEFT)
-              && handSelection > 0) {
+          && handSelection > 0) {
         handSelection--;
-      } else if ((e.getExtendedKeyCode() == KeyEvent.VK_DOWN || e.getExtendedKeyCode() == KeyEvent.VK_RIGHT)
-              && handSelection < 6) {
+      } else if ((e.getExtendedKeyCode() == KeyEvent.VK_DOWN
+              || e.getExtendedKeyCode() == KeyEvent.VK_RIGHT)
+          && handSelection < 6) {
         handSelection++;
       }
     }
