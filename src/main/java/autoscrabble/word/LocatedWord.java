@@ -31,4 +31,8 @@ public class LocatedWord extends Word {
   public Direction getDirection() {
     return direction;
   }
+
+  public boolean isHorizontal() {
+    return direction == Direction.HORIZONTAL;
+  }
 }

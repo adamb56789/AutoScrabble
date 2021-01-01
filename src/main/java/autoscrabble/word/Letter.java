@@ -5,13 +5,13 @@ public class Letter {
   private final char letter;
   private final int x;
   private final int y;
-  private final boolean bonusAllowed;
+  private final boolean justPlaced;
 
-  public Letter(char letter, int x, int y, boolean bonusAllowed) {
+  public Letter(char letter, int x, int y, boolean justPlaced) {
     this.letter = letter;
     this.x = x;
     this.y = y;
-    this.bonusAllowed = bonusAllowed;
+    this.justPlaced = justPlaced;
   }
 
   /**
@@ -37,8 +37,8 @@ public class Letter {
     return letterScore(letter);
   }
 
-  public boolean bonusAllowed() {
-    return bonusAllowed;
+  public boolean justPlaced() {
+    return justPlaced;
   }
 
   public char getChar() {

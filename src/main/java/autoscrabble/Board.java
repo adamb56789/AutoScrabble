@@ -67,6 +67,38 @@ public class Board extends JFrame implements KeyListener {
     System.out.println("There are " + dictionary.length + " words in the dictionary.");
   }
 
+  /**
+   * Get strings of the horizontal and vertical lines on the board
+   *
+   * @param board the board
+   * @return a list of Strings
+   */
+  public static List<String> getLines(char[][] board) {
+    // Rows
+    var lines = Arrays.stream(board).map(String::valueOf).collect(Collectors.toList());
+
+    // Columns
+    for (int i = 0; i < board.length; i++) {
+      char[] col = new char[board.length];
+      for (int j = 0; j < board.length; j++) {
+        col[j] = board[j][i];
+      }
+      lines.add(String.valueOf(col));
+    }
+    return lines;
+  }
+
+  /** Place the given word on the given board. */
+  public static void placeWord(LocatedWord word, char[][] board) {
+    for (int i = 0; i < word.getWord().length(); i++) {
+      if (word.isHorizontal()) {
+        board[word.getY()][word.getX() + i] = word.getWord().charAt(i);
+      } else {
+        board[word.getY() + i][word.getX()] = word.getWord().charAt(i);
+      }
+    }
+  }
+
   public char[] getRack() {
     return rack;
   }
@@ -122,48 +154,6 @@ public class Board extends JFrame implements KeyListener {
         .flatMap(Arrays::stream) // Merge the result
         .filter(w -> w.length() > 1) // Filter out blank or 1 letter words
         .allMatch(wordFinder::isWord); // Check against the dictionary
-  }
-
-  /**
-   * Get a list of boolean arrays of the horizontal and vertical lines on the given boolean board
-   *
-   * @param board the board
-   * @return a list of Bool arrays
-   */
-//  public List<Boolean[]> getLines(boolean[][] board) {
-//
-//  }
-
-  /**
-   * Get strings of the horizontal and vertical lines on the board
-   *
-   * @param board the board
-   * @return a list of Strings
-   */
-  public List<String> getLines(char[][] board) {
-    // Rows
-    var lines = Arrays.stream(board).map(String::valueOf).collect(Collectors.toList());
-
-    // Columns
-    for (int i = 0; i < board.length; i++) {
-      char[] col = new char[board.length];
-      for (int j = 0; j < board.length; j++) {
-        col[j] = board[j][i];
-      }
-      lines.add(String.valueOf(col));
-    }
-    return lines;
-  }
-
-  /** Place the given word on the given board. */
-  public void placeWord(LocatedWord word, char[][] board) {
-    for (int i = 0; i < word.getWord().length(); i++) {
-      if (word.getDirection() == Direction.HORIZONTAL) {
-        board[word.getY()][word.getX() + i] = word.getWord().charAt(i);
-      } else {
-        board[word.getY() + i][word.getX()] = word.getWord().charAt(i);
-      }
-    }
   }
 
   /**
@@ -223,7 +213,7 @@ public class Board extends JFrame implements KeyListener {
     var lines = getLines(board);
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-//            .parallel() // I am speed
+            .parallel() // I am speed
             .mapToObj(
                 i -> {
                   // Get the row index if horizontal or col index if vertical, and the direction
@@ -252,7 +242,7 @@ public class Board extends JFrame implements KeyListener {
                   word.getWord(),
                   ((char) (word.getX() + 97)),
                   (15 - word.getY()),
-                  word.getDirection() == Direction.HORIZONTAL ? "horizontally" : "vertically",
+                  word.isHorizontal() ? "horizontally" : "vertically",
                   word.getRating());
           break;
         }
