@@ -5,6 +5,7 @@ import autoscrabble.word.LocatedWord;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.OptionalInt;
 
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
@@ -32,18 +33,15 @@ public class Rater {
     this.board = board;
   }
 
-  private double rateWord(Letter[] word) {
-    double total = 0;
+  private double rateWord(List<Letter> word) {
     // Add up the scores of the letters
-    for (Letter letter : word) {
-      total += rateLetter(letter);
-    }
+    double total = word.stream().mapToDouble(this::rateLetter).sum();
 
     // Apply any potential word multipliers
     total *= wordMultiplier(word);
 
     // Add 50 if 7 letters are used
-    if (Arrays.stream(word).filter(Letter::justPlaced).count() >= 7) {
+    if (word.stream().filter(Letter::justPlaced).count() >= 7) {
       total += 50;
     }
     return total;
@@ -67,7 +65,7 @@ public class Rater {
     }
   }
 
-  private int wordMultiplier(Letter[] word) {
+  private int wordMultiplier(List<Letter> word) {
     int multiplier = 1;
     for (var letter : word) {
       if (letter.justPlaced()) {
@@ -139,18 +137,20 @@ public class Rater {
         l++;
       }
 
-      var letterData = new Letter[l - k];
-      for (int m = k, n = 0; m < l; m++, n++) {
+      // Generate the letters along the correct axis
+      var letters = new ArrayList<Letter>();
+      for (int m = k; m < l; m++) {
         if (i < Board.SIZE) { // Horizontal
-          letterData[n] = new Letter(lines.get(i).charAt(m), m, i, !alreadyRatedLines[i][m]);
+          letters.add(new Letter(lines.get(i).charAt(m), m, i, !alreadyRatedLines[i][m]));
         } else { // Vertical
-          letterData[n] =
-              new Letter(lines.get(i).charAt(m), i - Board.SIZE, m, !alreadyRatedLines[i][m]);
+          letters.add(
+              new Letter(lines.get(i).charAt(m), i - Board.SIZE, m, !alreadyRatedLines[i][m]));
         }
       }
 
-      if (letterData.length > 1) {
-        rating += rateWord(letterData);
+      // Do not rate 1 letter non-words
+      if (letters.size() > 1) {
+        rating += rateWord(letters);
       }
     }
 
