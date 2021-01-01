@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Board extends JFrame implements KeyListener {
   public static final int SIZE = 15;
@@ -163,61 +164,32 @@ public class Board extends JFrame implements KeyListener {
     }
   }
 
-  public String[][] findWord(int[][] s, char[] Hand) {
-    int gapL = Math.abs(s[0][0] - s[1][0]) + Math.abs(s[0][1] - s[1][1]) + 1;
-    String[] location = new String[gapL];
-    if (s[0][1] - s[1][1] == 0) { // Horizontal
-      for (int i = 0; i < gapL; i++) {
-        location[i] = board[s[0][1]][s[0][0] + i] + "";
-        if (board[s[0][1]][s[0][0] + i] == ' ') {
-          location[i] = "";
-        }
-      }
-    } else { // Vertical
-      for (int i = 0; i < gapL; i++) {
-        location[i] = board[s[0][1] + i][s[0][0]] + "";
-        if (board[s[0][1] + i][s[0][0]] == ' ') {
-          location[i] = "";
-        }
-      }
-    }
+  /**
+   * Generate all possible words that could be placed on the given line. The index is the row or
+   * column index of the line.
+   */
+  private String[][] generateWordsOnLine(char[] rack, String line, int index, Direction direction) {
     // If line is blank then skip
-    boolean isBlank = true;
-    for (int i = 0; i < 15; i++) {
-      if (!"".equals(location[i])) {
-        isBlank = false;
-        break;
-      }
-    }
-    if (isBlank) {
+    if (line.isBlank()) {
       return new String[][] {};
     }
-    // Calculate mode - normal (0), blanks on the board (1), blanks in the hand (2)
-    int mode = 0;
-    for (String tile : location) {
-      if (tile.length() > 0 && Character.isLowerCase(tile.charAt(0))) {
-        mode = 1;
-      }
-    }
-    for (char letter : rack) {
-      if (letter == '_') {
-        mode = 2;
-        break;
-      }
-    }
-    String[][] validWords = wordFinder.getWords(location, Hand, mode);
-    String[][] wordScores = new String[validWords.length][5];
-    var rater = new Rater(this);
-    for (int i = 0; i < validWords.length; i++) {
-      wordScores[i][0] = validWords[i][0];
 
-      if (s[0][1] - s[1][1] == 0) { // Horizontal
-        wordScores[i][1] = (s[0][0] + validWords[i][1]) + "";
-        wordScores[i][2] = s[0][1] + "";
+    // Get a list of possible words
+    String[][] words = wordFinder.getWords(line.toCharArray(), rack);
+
+    // Rate all of the words
+    String[][] wordScores = new String[words.length][5];
+    var rater = new Rater(this);
+    for (int i = 0; i < words.length; i++) {
+      wordScores[i][0] = words[i][0];
+
+      if (direction == Direction.HORIZONTAL) {
+        wordScores[i][1] = words[i][1];
+        wordScores[i][2] = String.valueOf(index);
         wordScores[i][3] = "h";
       } else { // Vertical
-        wordScores[i][1] = s[0][0] + "";
-        wordScores[i][2] = (s[0][1] + validWords[i][1]) + "";
+        wordScores[i][1] = String.valueOf(index);
+        wordScores[i][2] = words[i][1];
         wordScores[i][3] = "v";
       }
       wordScores[i][4] = rater.rate(wordScores[i]) + "";
@@ -250,13 +222,17 @@ public class Board extends JFrame implements KeyListener {
     }
 
     // Find all possible words
-    var words = new ArrayList<String[]>();
-    for (int i = 0; i < 15; i++) {
-      int[][] select1 = {{i, 0}, {i, 14}};
-      words.addAll(List.of(findWord(select1, rack)));
-      int[][] select2 = {{0, i}, {14, i}};
-      words.addAll(List.of(findWord(select2, rack)));
-    }
+    var lines = getLines(board);
+    var words = IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
+            .parallel() // I am speed
+            .mapToObj(i -> {
+              // Get the row index if horizontal or col index if vertical, and the direction
+              int index = i < board.length ? i : i - board.length;
+              var direction = i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
+              return generateWordsOnLine(rack, lines.get(i), index, direction);
+            })
+            .flatMap(Arrays::stream) // Merge lists
+            .collect(Collectors.toList());
 
     if (words.size() == 0) {
       userMessage = "No words found";

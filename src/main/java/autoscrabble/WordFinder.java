@@ -3,7 +3,7 @@ package autoscrabble;
 import java.util.Arrays;
 
 public class WordFinder {
-  private String[][] characters;
+  private char[][] characters;
   private String[] dictionary;
 
   public WordFinder(String[] dictionary) {
@@ -13,12 +13,12 @@ public class WordFinder {
   public void loadDictionary(String[] dict) {
     this.dictionary = dict;
     // Separating word into characters
-    characters = new String[dict.length][1];
+    characters = new char[dict.length][1];
     for (int i = 0; i < dict.length; i++) {
       int l = dict[i].length();
-      characters[i] = new String[l];
+      characters[i] = new char[l];
       for (int j = 0; j < l; j++) {
-        characters[i][j] = dict[i].charAt(j) + "";
+        characters[i][j] = dict[i].charAt(j);
       }
     }
   }
@@ -28,29 +28,31 @@ public class WordFinder {
     return Arrays.binarySearch(dictionary, s.toUpperCase()) >= 0;
   }
 
-  public String[][] getWords(String[] l, char[] h, int mode) {
+  public String[][] getWords(char[] line, char[] h) {
+    boolean rackContainsBlank = String.valueOf(h).chars().anyMatch(c -> c == '_');
+
     // Counting max possible length of words, possible future sorting???
 
     String[][] validList1 = new String[dictionary.length][2];
     int validList1n = 0;
     int n = 0;
     for (int i = 0; i < dictionary.length; i++) { // Getting words that contain the specification
-      for (int j = 0; j < l.length - dictionary[i].length() + 1; j++) {
+      for (int j = 0; j < line.length - dictionary[i].length() + 1; j++) {
         boolean validWord = true;
         int m = 0;
         for (int k = j; k < dictionary[i].length() + j; k++) {
-          if (!l[k].equals("")) {
+          if (line[k] != ' ') {
             m += 1;
           }
-          if (mode == 0) {
-            if ((!l[k].equals(characters[i][k - j]))) {
-              if (!l[k].equals("")) {
+          if (!rackContainsBlank) {
+            if ((line[k] != characters[i][k - j])) {
+              if (line[k] != ' ') {
                 validWord = false;
               }
             }
           } else {
-            if ((!l[k].toUpperCase().equals(characters[i][k - j]))) {
-              if (!l[k].equals("")) {
+            if ((Character.toUpperCase(line[k]) != characters[i][k - j])) {
+              if (line[k] != ' ') {
                 validWord = false;
               }
             }
@@ -76,10 +78,10 @@ public class WordFinder {
       }
     }
     String[][] validList2temp = new String[validList1n][2];
-    if (mode == 2) validList2temp = new String[validList1n * 26][2];
+    if (rackContainsBlank) validList2temp = new String[validList1n * 26][2];
     int validList2n = 0;
 
-    if (mode != 2) { // Normal mode
+  if (!rackContainsBlank) { // Normal mode
       for (int i = 0; i < validList1n; i++) {
         int[] charCount = new int[26];
         int k = 0;
@@ -87,7 +89,7 @@ public class WordFinder {
         for (int j = Integer.parseInt(validList1[i][1]);
             j < validList1[i][0].length() + Integer.parseInt(validList1[i][1]);
             j++) {
-          if (l[j].equals("")) {
+          if (line[j] == ' ') {
             lettersPlaced++;
             charCount[Character.getNumericValue(validList1[i][0].charAt(k)) - 10]++;
           }
@@ -116,7 +118,7 @@ public class WordFinder {
         for (int j = Integer.parseInt(validList1[i][1]);
             j < validList1[i][0].length() + Integer.parseInt(validList1[i][1]);
             j++) {
-          if (l[j].equals("")) {
+          if (line[j] == ' ') {
             lettersPlaced++;
             charCount[Character.getNumericValue(validList1[i][0].charAt(k)) - 10]++;
           }
@@ -150,7 +152,7 @@ public class WordFinder {
                   o < validList2temp[validList2n][0].length();
                   o++) { // Make the first blank letter lower case (not 100% ideal)
                 if (Character.getNumericValue(validList2temp[validList2n][0].charAt(o)) - 10 == m) {
-                  if ("".equals(l[Integer.parseInt(validList2temp[validList2n][1]) + o])) {
+                  if (' ' == line[Integer.parseInt(validList2temp[validList2n][1]) + o]) {
                     validList2temp[validList2n][0] =
                         validList2temp[validList2n][0].substring(0, o)
                             + Character.toLowerCase(validList2temp[validList2n][0].charAt(o))
@@ -175,12 +177,12 @@ public class WordFinder {
       boolean valid = true;
 
       var i2 = Integer.parseInt(validList2[i][1]) - 1;
-      if (i2 > 0 && !"".equals(l[i2])) {
+      if (i2 > 0 && ' ' != line[i2]) {
         valid = false;
       }
 
       var i1 = Integer.parseInt(validList2[i][1]) + validList2[i][0].length();
-      if (i1 < l.length && !"".equals(l[i1])) {
+      if (i1 < line.length && ' ' != line[i1]) {
         valid = false;
       }
 
