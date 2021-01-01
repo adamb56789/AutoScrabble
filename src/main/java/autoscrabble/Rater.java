@@ -87,7 +87,7 @@ public class Rater {
     return rating;
   }
 
-  public int rate(String[] location) {
+  public int rate(Word word) {
     char[][] boardT = new char[15][15];
     boolean[][] rated = new boolean[15][15];
     int rating = 0;
@@ -98,13 +98,11 @@ public class Rater {
     for (int i = 0; i < 15; i++) {
       System.arraycopy(board.getOccupiedTiles()[i], 0, rated[i], 0, 15);
     }
-    for (int i = 0; i < location[0].length(); i++) {
-      if ("h".equals(location[3])) {
-        boardT[Integer.parseInt(location[2])][Integer.parseInt(location[1]) + i] =
-            location[0].charAt(i);
+    for (int i = 0; i < word.getWord().length(); i++) {
+      if (word.getDirection() == Direction.HORIZONTAL) {
+        boardT[word.getY()][word.getX() + i] = word.getWord().charAt(i);
       } else {
-        boardT[Integer.parseInt(location[2]) + i][Integer.parseInt(location[1])] =
-            location[0].charAt(i);
+        boardT[word.getY() + i][word.getX()] = word.getWord().charAt(i);
       }
     }
 
@@ -142,7 +140,7 @@ public class Rater {
     }
     for (int i = 0; i < 30; i++) { // Main loop to go through and add ratings
       if (relevantLines[i]) {
-        String[][] word = null;
+        String[][] wordData = null;
         int length = 0;
         for (int j = 0; j < 15; j++) {
           if (!ratedLines[i][j] && Character.isAlphabetic(lines[i][j])) {
@@ -167,21 +165,21 @@ public class Rater {
               l++;
             }
             length--;
-            word = new String[l - k - 2][5];
+            wordData = new String[l - k - 2][5];
             for (int m = k + 1, n = 0; m < l - 1; m++, n++) {
-              word[n][0] = lines[i][m] + "";
+              wordData[n][0] = lines[i][m] + "";
               if (i < 15) { // Horizontal
-                word[n][1] = i + "";
-                word[n][2] = m + "";
+                wordData[n][1] = i + "";
+                wordData[n][2] = m + "";
               } else { // Vertical
-                word[n][1] = m + "";
-                word[n][2] = i - 15 + "";
+                wordData[n][1] = m + "";
+                wordData[n][2] = i - 15 + "";
               }
               if (ratedLines[i][m]) {
-                word[n][3] = "n";
+                wordData[n][3] = "n";
               }
-              if (Character.isLowerCase(word[n][0].charAt(0))) {
-                word[n][4] = "y";
+              if (Character.isLowerCase(wordData[n][0].charAt(0))) {
+                wordData[n][4] = "y";
               }
             }
             break;
@@ -189,7 +187,7 @@ public class Rater {
         }
         length++;
         if (length > 1) {
-          rating += rateWord(word, oldLines[i]);
+          rating += rateWord(wordData, oldLines[i]);
         }
       }
     }

@@ -119,7 +119,7 @@ public class Board extends JFrame implements KeyListener {
     this.ySelection = ySelection;
   }
 
-  public boolean boardIsValid(String[] move) {
+  public boolean boardIsValid(Word move) {
     char[][] boardCopy = Arrays.stream(board).map(char[]::clone).toArray(char[][]::new);
 
     // Place the word if there is one
@@ -132,7 +132,7 @@ public class Board extends JFrame implements KeyListener {
             .map(arr -> arr.split(" +")) // Split each line around spaces
             .flatMap(Arrays::stream) // Merge the result
             .filter(w -> w.length() > 1) // Filter out blank or 1 letter words
-            .anyMatch(wordFinder::isWord); // Check against the dictionary
+            .allMatch(wordFinder::isWord); // Check against the dictionary
   }
 
   /**
@@ -154,12 +154,12 @@ public class Board extends JFrame implements KeyListener {
     return Arrays.stream(lines).map(String::valueOf).collect(Collectors.toList());
   }
 
-  private void placeWord(String[] word, char[][] board) {
-    for (int i = 0; i < word[0].length(); i++) {
-      if ("h".equals(word[3])) {
-        board[Integer.parseInt(word[2])][Integer.parseInt(word[1]) + i] = word[0].charAt(i);
+  private void placeWord(Word word, char[][] board) {
+    for (int i = 0; i < word.getWord().length(); i++) {
+      if (word.getDirection() == Direction.HORIZONTAL) {
+        board[word.getY()][word.getX() + i] = word.getWord().charAt(i);
       } else {
-        board[Integer.parseInt(word[2]) + i][Integer.parseInt(word[1])] = word[0].charAt(i);
+        board[word.getY() + i][word.getX()] = word.getWord().charAt(i);
       }
     }
   }
@@ -168,33 +168,28 @@ public class Board extends JFrame implements KeyListener {
    * Generate all possible words that could be placed on the given line. The index is the row or
    * column index of the line.
    */
-  private String[][] generateWordsOnLine(char[] rack, String line, int index, Direction direction) {
+  private List<RatedWord> generateWordsOnLine(char[] rack, String line, int index, Direction direction) {
     // If line is blank then skip
     if (line.isBlank()) {
-      return new String[][] {};
+      return null;
     }
 
     // Get a list of possible words
     String[][] words = wordFinder.getWords(line.toCharArray(), rack);
 
     // Rate all of the words
-    String[][] wordScores = new String[words.length][5];
+    var ratedWords = new ArrayList<RatedWord>();
     var rater = new Rater(this);
-    for (int i = 0; i < words.length; i++) {
-      wordScores[i][0] = words[i][0];
-
+    for (String[] word : words) {
+      Word unratedWord;
       if (direction == Direction.HORIZONTAL) {
-        wordScores[i][1] = words[i][1];
-        wordScores[i][2] = String.valueOf(index);
-        wordScores[i][3] = "h";
+        unratedWord = new Word(word[0], Integer.parseInt(word[1]), index, direction);
       } else { // Vertical
-        wordScores[i][1] = String.valueOf(index);
-        wordScores[i][2] = words[i][1];
-        wordScores[i][3] = "v";
+        unratedWord = new Word(word[0], index, Integer.parseInt(word[1]), direction);
       }
-      wordScores[i][4] = rater.rate(wordScores[i]) + "";
+      ratedWords.add((unratedWord.getRatedWord(rater)));
     }
-    return wordScores;
+    return ratedWords;
   }
 
   private void findBestWord() {
@@ -231,7 +226,8 @@ public class Board extends JFrame implements KeyListener {
               var direction = i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
               return generateWordsOnLine(rack, lines.get(i), index, direction);
             })
-            .flatMap(Arrays::stream) // Merge lists
+            .filter(Objects::nonNull) // Remove any lines that were skipped
+            .flatMap(List::stream) // Merge lists
             .collect(Collectors.toList());
 
     if (words.size() == 0) {
@@ -240,17 +236,17 @@ public class Board extends JFrame implements KeyListener {
       return;
     } else {
       // Sort the words descending by score
-      words.sort(Collections.reverseOrder(Comparator.comparingDouble(word -> Double.parseDouble(word[4]))));
+      words.sort(Collections.reverseOrder(Comparator.comparingDouble(RatedWord::getRating)));
 
       // Get the first one that is valid
-      for (String[] word : words) {
+      for (var word : words) {
         if (boardIsValid(word)) {
           userMessage = String.format("Found %s at (%c%d) %s, scoring at least %s, ",
-                  word[0],
-                  ((char) (Integer.parseInt(word[1]) + 97)),
-                  (15 - Integer.parseInt(word[2])),
-                  "h".equals(word[3]) ? "horizontally" : "vertically",
-                  word[4]);
+                  word.getWord(),
+                  ((char) (word.getX() + 97)),
+                  (15 - word.getY()),
+                  word.getDirection() == Direction.HORIZONTAL ? "horizontally" : "vertically",
+                  word.getRating());
           break;
         }
         if (userInterrupt) {
