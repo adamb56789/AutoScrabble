@@ -1,6 +1,6 @@
 package autoscrabble;
 
-import autoscrabble.word.LineWord;
+import autoscrabble.word.Word1D;
 import autoscrabble.word.LocatedWord;
 import autoscrabble.word.RatedWord;
 
@@ -168,7 +168,7 @@ public class Board extends JFrame implements KeyListener {
     }
 
     // Get a list of possible words
-    List<LineWord> words = wordFinder.getWords(line.toCharArray(), rack);
+    List<Word1D> words = wordFinder.getWords(line, rack);
 
     // Rate all of the words
     var ratedWords = new ArrayList<RatedWord>();
