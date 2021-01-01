@@ -8,8 +8,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Board extends JFrame implements KeyListener {
@@ -232,99 +232,69 @@ public class Board extends JFrame implements KeyListener {
     return wordScores;
   }
 
-  public void onEnter() {
-    double startTime = System.currentTimeMillis();
+  private void findBestWord() {
+    long startTime = System.currentTimeMillis();
+
+    // If the board is invalid display an error
     if (!boardIsValid(null)) {
       userMessage = "Current board not valid";
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     }
-    var handTemp = new char[rack.length];
-    System.arraycopy(rack, 0, handTemp, 0, rack.length);
+
+    // Get the index of the blank tile in the rack
+    int blankIndex = -1;
     for (int i = 0; i < rack.length; i++) {
       if (rack[i] == '_') {
-        rack[i] = ' ';
-        break;
-      }
-    }
-
-
-    int blankL = -1;
-    for (int i = 0; i < rack.length; i++) { // Getting blank location
-      if (rack[i] == '_') {
-        if (blankL != -1) {
+        if (blankIndex != -1) {
+          // Using 2 blanks takes too long so don't allow it
           userMessage = "Only one blank allowed";
           setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
           return;
         }
-        blankL = i;
+        blankIndex = i;
       }
     }
 
-    String[][] validWords = {};
-    if (blankL == -1) { // No blank
-      for (int i = 0; i < 15; i++) {
-        int[][] select1 = {{i, 0}, {i, 14}};
-        validWords = joinArray(validWords, findWord(select1, rack), 5);
-        int[][] select2 = {{0, i}, {14, i}};
-        validWords = joinArray(validWords, findWord(select2, rack), 5);
-      }
-    } else { // blank
-      for (int i = 0; i < 15; i++) {
-        int[][] select1 = {{i, 0}, {i, 14}};
-        validWords = joinArray(validWords, findWord(select1, rack), 5);
-        int[][] select2 = {{0, i}, {14, i}};
-        validWords = joinArray(validWords, findWord(select2, rack), 5);
-      }
+    // Find all possible words
+    var words = new ArrayList<String[]>();
+    for (int i = 0; i < 15; i++) {
+      int[][] select1 = {{i, 0}, {i, 14}};
+      words.addAll(List.of(findWord(select1, rack)));
+      int[][] select2 = {{0, i}, {14, i}};
+      words.addAll(List.of(findWord(select2, rack)));
     }
-    String message = "";
-    if (validWords.length == 0) {
+
+    if (words.size() == 0) {
       userMessage = "No words found";
-      System.arraycopy(handTemp, 0, rack, 0, rack.length);
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return;
     } else {
-      Arrays.sort(
-          validWords,
-          (String[] a, String[] b) ->
-              Double.compare(Double.parseDouble(b[4]), Double.parseDouble(a[4])));
-      for (String[] word : validWords) {
-        message =
-            "Checking word " + word[0] + " which would score " + word[4] + " (press ESC to cancel)";
+      // Sort the words descending by score
+      words.sort(Collections.reverseOrder(Comparator.comparingDouble(word -> Double.parseDouble(word[4]))));
+
+      // Get the first one that is valid
+      for (String[] word : words) {
         if (boardIsValid(word)) {
-          message = "Found ";
-          message +=
-              word[0]
-                  + " at ("
-                  + ((char) (Integer.parseInt(word[1]) + 97))
-                  + (15 - Integer.parseInt(word[2]))
-                  + ")";
-          if ("h".equals(word[3])) {
-            message += " horizontally";
-          } else {
-            message += " vertically";
-          }
-          message += ", scoring at least " + word[4] + ", ";
+          userMessage = String.format("Found %s at (%c%d) %s, scoring at least %s, ",
+                  word[0],
+                  ((char) (Integer.parseInt(word[1]) + 97)),
+                  (15 - Integer.parseInt(word[2])),
+                  "h".equals(word[3]) ? "horizontally" : "vertically",
+                  word[4]);
           break;
         }
         if (userInterrupt) {
-          userInterrupt = false;
-          message = "Cancelled ";
+          userMessage = "Cancelled ";
           break;
         }
       }
     }
-    userMessage = message;
 
-    double finishTime = System.currentTimeMillis();
-    System.out.println("Took " + (finishTime - startTime) + " ms");
-    if (userMessage.equals("Cancelled ")) {
-      userMessage += "after " + (finishTime - startTime) + " ms";
-    } else {
-      userMessage += "in " + (finishTime - startTime) + " ms";
-    }
+    long finishTime = System.currentTimeMillis();
+    userMessage += String.format("%s %d ms", userInterrupt ? "after" : "in", (finishTime - startTime));
+    userInterrupt = false;
     System.out.println(userMessage);
-    System.arraycopy(handTemp, 0, rack, 0, rack.length);
     setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     repaint();
   }
@@ -344,7 +314,7 @@ public class Board extends JFrame implements KeyListener {
         rack[handSelection] = Character.toUpperCase(e.getKeyChar());
       } else if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
         rack[handSelection] = ' ';
-      } else if (e.getKeyChar() == ' ') {
+      } else if (e.getKeyChar() == ' ' || e.getKeyChar() == '-') {
         rack[handSelection] = '_';
       }
     }
@@ -355,7 +325,7 @@ public class Board extends JFrame implements KeyListener {
   public void keyPressed(KeyEvent e) {
     if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
       setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      onEnter();
+      findBestWord();
     } else if (e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) {
       userInterrupt = true;
     } else if (handSelection == -1) {
