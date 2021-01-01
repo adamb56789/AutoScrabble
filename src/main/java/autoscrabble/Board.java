@@ -163,13 +163,6 @@ public class Board extends JFrame implements KeyListener {
     }
   }
 
-  public String[][] joinArray(String[][] array1, String[][] array2, int l) {
-    String[][] array3 = new String[array1.length + array2.length][l];
-    System.arraycopy(array1, 0, array3, 0, array1.length);
-    System.arraycopy(array2, 0, array3, array1.length, array2.length);
-    return array3;
-  }
-
   public String[][] findWord(int[][] s, char[] Hand) {
     int gapL = Math.abs(s[0][0] - s[1][0]) + Math.abs(s[0][1] - s[1][1]) + 1;
     String[] location = new String[gapL];
