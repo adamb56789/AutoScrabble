@@ -2,10 +2,10 @@ package autoscrabble.word;
 
 /** A letter with a specified location and whether or not letter score bonuses can apply. */
 public class Letter {
-  private char letter;
-  private int x;
-  private int y;
-  private boolean bonusAllowed;
+  private final char letter;
+  private final int x;
+  private final int y;
+  private final boolean bonusAllowed;
 
   public Letter(char letter, int x, int y, boolean bonusAllowed) {
     this.letter = letter;
@@ -41,31 +41,15 @@ public class Letter {
     return bonusAllowed;
   }
 
-  public void setBonusAllowed(boolean bonusAllowed) {
-    this.bonusAllowed = bonusAllowed;
-  }
-
   public char getChar() {
     return letter;
-  }
-
-  public void setLetter(char letter) {
-    this.letter = letter;
   }
 
   public int getX() {
     return x;
   }
 
-  public void setX(int x) {
-    this.x = x;
-  }
-
   public int getY() {
     return y;
-  }
-
-  public void setY(int y) {
-    this.y = y;
   }
 }
