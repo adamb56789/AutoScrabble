@@ -37,7 +37,7 @@ public final class Tile {
     String score = Integer.toString(Letter.letterScore(letter));
     int scoreX = x + TILE_SCORE_X;
     if (score.length() > 1) { // If it is a bigger number it needs more space
-      scoreX = TILE_SCORE_X - TILE_SCORE_X_CORRECTION;
+      scoreX = x + TILE_SCORE_X - TILE_SCORE_X_CORRECTION;
     }
     g.drawString(score, scoreX, y + TILE_SCORE_Y);
   }
