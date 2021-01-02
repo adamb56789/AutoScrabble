@@ -3,11 +3,12 @@ package autoscrabble;
 public class DictEntry {
   public static final char[] ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
   private final String word;
+  private final char[] chars;
   private final int alphabetMask;
 
   public DictEntry(String word) {
     this.word = word;
-
+    this.chars = word.toCharArray();
     alphabetMask = createAlphabetMask(word);
   }
 
@@ -20,6 +21,10 @@ public class DictEntry {
       }
     }
     return mask;
+  }
+
+  public char[] getChars() {
+    return chars;
   }
 
   public String getWord() {

@@ -38,40 +38,48 @@ public class WordFinder {
 
     var rackMask = DictEntry.createAlphabetMask(String.valueOf(rack));
     var lineMask = DictEntry.createAlphabetMask(line);
-    return dictionary.stream()
-        // Preliminarily filtering out words that will always fail to save time
-        .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask))
+    // Faster to operate on char arrays
+    char[] lineArr = line.toCharArray();
+    char[] lineUpperArr = line.toUpperCase().toCharArray();
+
+    List<Word1D> list = new ArrayList<>();
+    for (DictEntry entry : dictionary) {
+      // Preliminarily filtering out words that will always fail to save time
+      // Bitmasks where the nth bit is 1 if the string contains the nth letter of the alphabet
+      // First condition: the dictionary word and the line must have at least 1 matching letter
+      // Second: enough letters in the word must appear in the rack or line. Usually all of them,
+      // less if the rack has blank tiles.
+      // (rackMask | lineMask) is the mask for the letters in the rack and line combined.
+      // we then get all letters that are in the word and not in the rack or line, and count them
+      if ((entry.getAlphabetMask() & lineMask) != 0
+          && Integer.bitCount(entry.getAlphabetMask() & ~(rackMask | lineMask)) <= blankCount) {
+
         // Get all words that could fit on the given line
-        .map(entry -> getWordsFitInLine(line, entry.getWord(), line.toUpperCase()))
-        .flatMap(List::stream) // Merge words from each line
+        var wordsFitInLine = getWordsFitInLine(lineArr, entry.getChars(), lineUpperArr);
+
         // Filter to words that can be placed with available tiles
-        .filter(word -> rackHasEnoughLetters(word, line, getLetterFrequency(rack), blankCount))
-        .collect(Collectors.toList());
+        for (Word1D word : wordsFitInLine) {
+          if (rackHasEnoughLetters(word, lineArr, getLetterFrequency(rack), blankCount)) {
+            list.add(word);
+          }
+        }
+      }
+    }
+    return list;
   }
 
-  private boolean preliminaryFilter(DictEntry entry, int blankCount, int rackMask, int lineMask) {
-    // Bitmasks where the nth bit is 1 if the string contains the nth letter of the alphabet
-    // First condition: the dictionary word and the line must have at least 1 matching letter
-    // Second: enough letters in the word must appear in the rack or line. Usually all of them,
-    // less if the rack has blank tiles.
-    // (rackMask | lineMask) is the mask for the letters in the rack and line combined.
-    // we then get all letters that are in the word and not in the rack or line, and count them
-    return (entry.getAlphabetMask() & lineMask) != 0
-        && Integer.bitCount(entry.getAlphabetMask() & ~(rackMask | lineMask)) <= blankCount;
-  }
-
-  private List<Word1D> getWordsFitInLine(String line, String entry, String upperCaseLine) {
+  private List<Word1D> getWordsFitInLine(char[] line, char[] entry, char[] upperCaseLine) {
     var list = new ArrayList<Word1D>();
-    for (int j = 0; j < line.length() - entry.length() + 1; j++) {
+    for (int j = 0; j < line.length - entry.length + 1; j++) {
       boolean collision = false;
       boolean connectingLetterExists = false;
-      for (int k = j; k < entry.length() + j; k++) {
+      for (int k = j; k < entry.length + j; k++) {
         // We need to match with at least 1 letter already on the board
-        if (line.charAt(k) != ' ') {
+        if (line[k] != ' ') {
           connectingLetterExists = true;
         }
         // Check for collisions with letters on the board
-        if (upperCaseLine.charAt(k) != entry.charAt(k - j) && line.charAt(k) != ' ') {
+        if (upperCaseLine[k] != entry[k - j] && line[k] != ' ') {
           collision = true;
           break;
         }
@@ -84,17 +92,17 @@ public class WordFinder {
   }
 
   private boolean rackHasEnoughLetters(
-      Word1D word, String line, int[] rackLetterFrequency, int blankCount) {
+      Word1D word, char[] line, int[] rackLetterFrequency, int blankCount) {
     int[] remainingLetters = rackLetterFrequency.clone();
     boolean placedALetter = false; // If we do not place a letter then the word is already there
     boolean ranOutOfLetters = false;
     int blanksRemaining = blankCount;
-    for (int j = 0; j < word.getWord().length(); j++) { // Iterate through the word
+    for (int j = 0; j < word.getChars().length; j++) { // Iterate through the word
       // If the corresponding position on the line is empty we must fill it from the rack
-      if (line.charAt(j + word.getStartIndex()) == ' ') {
+      if (line[j + word.getStartIndex()] == ' ') {
         placedALetter = true;
         // Decrement the count of the letter
-        int letterIndex = Character.getNumericValue(word.getWord().charAt(j)) - 10;
+        int letterIndex = Character.getNumericValue(word.getChars()[j]) - 10;
         remainingLetters[letterIndex]--;
         if (remainingLetters[letterIndex] < 0) {
           // If we are out of letters check if we have a blank, or fail
