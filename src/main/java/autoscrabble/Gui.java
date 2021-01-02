@@ -5,11 +5,13 @@ import autoscrabble.word.Letter;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
 
-public class Gui extends JComponent implements MouseListener {
+public class Gui extends JComponent implements MouseListener, KeyListener {
   public static final Font FONT_LARGE = new Font("Arial", Font.PLAIN, 30);
   public static final Font FONT_MEDIUM = new Font("Arial", Font.PLAIN, 20);
   public static final Font FONT_SMALL = new Font("Arial", Font.PLAIN, 12);
@@ -51,17 +53,23 @@ public class Gui extends JComponent implements MouseListener {
   public static final int SELECTION_INTERIOR_OVERLAP = 2;
   public static final int SELECTION_LINE_WEIGHT = 4;
 
+  public static final Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
+  public static final Cursor WAITING_CURSOR = new Cursor(Cursor.WAIT_CURSOR);
   private final Board board;
+  private final Frame frame;
   private Image tripleWord;
   private Image doubleWord;
   private Image tripleLetter;
   private Image doubleLetter;
   private Image start;
   private Image tile;
+  private int rackSelection = -1;
+  private int xSelection = -1;
+  private int ySelection = -1;
 
   public Gui(Board board) {
     super();
-    this.board = board;
+    // Load images
     try {
       tripleWord = ImageIO.read(getClass().getResource("/images/tripleWord.png"));
       doubleWord = ImageIO.read(getClass().getResource("/images/doubleWord.png"));
@@ -72,7 +80,27 @@ public class Gui extends JComponent implements MouseListener {
     } catch (IOException e) {
       e.printStackTrace();
     }
+    Gui gui = this;
+    this.frame = new JFrame() {
+      {
+        setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
+        addKeyListener(gui);
+        setTitle("Scrabble Perfect");
+        setResizable(false);
+        setMinimumSize(new Dimension(750, 750));
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        getContentPane().add(gui);
+        pack();
+        setLocationRelativeTo(this);
+        setVisible(true);
+        getContentPane().setBackground(Color.decode("#F3F3F3"));
+      }
+    };
+
+    this.board = board;
     addMouseListener(this);
+    addKeyListener(this);
   }
 
   @Override
@@ -145,26 +173,23 @@ public class Gui extends JComponent implements MouseListener {
     }
 
     // Draw the selection box
-    if (board.getxSelection() != -1) {
+    if (xSelection != -1) {
       drawSelectionBox(g,
-              board.getxSelection() * SQUARE_OFFSET + OUTLINE_WEIGHT + SQUARE_SPACING,
-              board.getySelection() * SQUARE_OFFSET + OUTLINE_WEIGHT + SQUARE_SPACING);
+              xSelection * SQUARE_OFFSET + OUTLINE_WEIGHT + SQUARE_SPACING,
+              ySelection * SQUARE_OFFSET + OUTLINE_WEIGHT + SQUARE_SPACING);
     }
 
-    drawTileRack(g, RACK_X, RACK_Y);
+    drawTileRack(g);
   }
 
   /**
    * Draw the tile rack and its tiles at the specified location
-   *
-   * @param g the graphics to draw on
-   * @param x the x position
-   * @param y the y position
-   */
-  private void drawTileRack(Graphics2D g, int x, int y) {
+   *  @param g the graphics to draw on
+   * */
+  private void drawTileRack(Graphics2D g) {
     // Draw background
     g.setColor(RACK_COLOUR);
-    g.fillRect(x, y, RACK_WIDTH, RACK_HEIGHT);
+    g.fillRect(Gui.RACK_X, Gui.RACK_Y, RACK_WIDTH, RACK_HEIGHT);
 
     // Draw the tiles
     g.setColor(TEXT_COLOUR);
@@ -172,17 +197,17 @@ public class Gui extends JComponent implements MouseListener {
     for (int i = 0; i < hand.length; i++) {
       if (hand[i] != ' ') {
         if (hand[i] == '_' || Character.isAlphabetic(hand[i])) {
-          int tileX = x + RACK_TILE_SPACING;
-          int tileY = y + RACK_TILE_SPACING + i * (SQUARE_SIZE + RACK_TILE_SPACING);
+          int tileX = Gui.RACK_X + RACK_TILE_SPACING;
+          int tileY = Gui.RACK_Y + RACK_TILE_SPACING + i * (SQUARE_SIZE + RACK_TILE_SPACING);
           drawTile(g, hand[i], tileX, tileY);
         }
       }
     }
 
     // Draw the selection
-    if (board.getHandSelection() != -1) {
-      int tileX = x + RACK_TILE_SPACING;
-      int tileY = y + RACK_TILE_SPACING + board.getHandSelection() * (SQUARE_SIZE + RACK_TILE_SPACING);
+    if (rackSelection != -1) {
+      int tileX = Gui.RACK_X + RACK_TILE_SPACING;
+      int tileY = Gui.RACK_Y + RACK_TILE_SPACING + rackSelection * (SQUARE_SIZE + RACK_TILE_SPACING);
       drawSelectionBox(g, tileX, tileY);
       g.setColor(SELECTION_COLOUR);
     }
@@ -233,13 +258,11 @@ public class Gui extends JComponent implements MouseListener {
   }
 
   @Override
-  public void mouseClicked(MouseEvent e) {}
-
-  @Override
   public void mousePressed(MouseEvent e) {
     // Remove the previous selection
-    board.setHandSelection(-1);
-    board.setSelection(-1, -1);
+    rackSelection = -1;
+    xSelection = -1;
+    ySelection = -1;
 
     int x = e.getX();
     int y = e.getY();
@@ -247,9 +270,8 @@ public class Gui extends JComponent implements MouseListener {
     if (borderWidth <= x && x < BOARD_SIZE - borderWidth &&
             borderWidth <= y && y < BOARD_SIZE - borderWidth) {
       // If the click is in the board
-      var xSelection = (x - borderWidth) / SQUARE_OFFSET;
-      var ySelection  = (y - borderWidth) / SQUARE_OFFSET;
-      board.setSelection(xSelection, ySelection);
+      xSelection = (x - borderWidth) / SQUARE_OFFSET;
+      ySelection  = (y - borderWidth) / SQUARE_OFFSET;
 
       // Right clicking inverts the case to identify a tile as blank
       if (e.getButton() == MouseEvent.BUTTON3) {
@@ -263,10 +285,67 @@ public class Gui extends JComponent implements MouseListener {
     } else if (RACK_X <= x && x < RACK_X + RACK_WIDTH &&
             RACK_Y + RACK_TILE_SPACING/2 <= y && y < RACK_Y + RACK_HEIGHT - RACK_TILE_SPACING/2) {
       // If the click is in the rack
-      board.setHandSelection((y - RACK_Y + RACK_TILE_SPACING/2) / (SQUARE_SIZE + RACK_TILE_SPACING));
+      rackSelection = (y - RACK_Y + RACK_TILE_SPACING/2) / (SQUARE_SIZE + RACK_TILE_SPACING);
     }
     repaint();
   }
+
+  @Override
+  public void keyTyped(KeyEvent e) {
+    if (xSelection != -1) {
+      if (Character.isAlphabetic(e.getKeyChar())) {
+        board.placeTile(e.getKeyChar(), xSelection, ySelection);
+      } else if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
+        board.placeTile(' ', xSelection, ySelection);
+      }
+    } else if (rackSelection != -1) {
+      if (Character.isAlphabetic(e.getKeyChar())) {
+        board.placeInRack(e.getKeyChar(), rackSelection);
+      } else if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
+        board.placeInRack(' ', rackSelection);
+      } else if (e.getKeyChar() == ' ' || e.getKeyChar() == '-') {
+        board.placeInRack('_', rackSelection);
+      }
+    }
+    repaint();
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
+      setCursor(WAITING_CURSOR);
+      board.findBestWord();
+      setCursor(DEFAULT_CURSOR);
+    } else if (e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) {
+      board.userInterrupt();
+    } else if (rackSelection == -1) {
+      if (e.getExtendedKeyCode() == KeyEvent.VK_LEFT && xSelection > 0) {
+        xSelection--;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_RIGHT && xSelection < 14) {
+        xSelection++;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_UP && ySelection > 0) {
+        ySelection--;
+      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && ySelection < 14) {
+        ySelection++;
+      }
+    } else {
+      if ((e.getExtendedKeyCode() == KeyEvent.VK_UP || e.getExtendedKeyCode() == KeyEvent.VK_LEFT)
+              && rackSelection > 0) {
+        rackSelection--;
+      } else if ((e.getExtendedKeyCode() == KeyEvent.VK_DOWN
+              || e.getExtendedKeyCode() == KeyEvent.VK_RIGHT)
+              && rackSelection < 6) {
+        rackSelection++;
+      }
+    }
+    repaint();
+  }
+
+  @Override
+  public void mouseClicked(MouseEvent e) {}
+
+  @Override
+  public void keyReleased(KeyEvent e) {}
 
   @Override
   public void mouseReleased(MouseEvent e) {}

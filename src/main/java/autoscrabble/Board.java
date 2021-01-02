@@ -4,20 +4,15 @@ import autoscrabble.word.LocatedWord;
 import autoscrabble.word.RatedWord;
 import autoscrabble.word.Word1D;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class Board extends JFrame implements KeyListener {
+public class Board {
   public static final int SIZE = 15;
   public static final int RACK_CAPACITY = 7;
   private final char[] rack = "ABCDEFG".toCharArray();
@@ -42,14 +37,8 @@ public class Board extends JFrame implements KeyListener {
   private final boolean[][] occupiedTiles = new boolean[board.length][board.length];
   private boolean userInterrupt;
   private String userMessage = "";
-  private int handSelection = -1;
-  private int xSelection = -1;
-  private int ySelection = -1;
 
   public Board() {
-    addKeyListener(this);
-    setFocusable(true);
-    setFocusTraversalKeysEnabled(false);
     var inputStream = getClass().getClassLoader().getResourceAsStream("Dictionary.txt");
     assert inputStream != null;
     var streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
@@ -119,27 +108,6 @@ public class Board extends JFrame implements KeyListener {
     return userMessage;
   }
 
-  public int getHandSelection() {
-    return handSelection;
-  }
-
-  public void setHandSelection(int handSelection) {
-    this.handSelection = handSelection;
-  }
-
-  public int getxSelection() {
-    return xSelection;
-  }
-
-  public int getySelection() {
-    return ySelection;
-  }
-
-  public void setSelection(int xSelection, int ySelection) {
-    this.xSelection = xSelection;
-    this.ySelection = ySelection;
-  }
-
   public boolean boardIsValid(LocatedWord move) {
     char[][] boardCopy = getBoardCopy();
 
@@ -170,7 +138,7 @@ public class Board extends JFrame implements KeyListener {
     // Get a list of possible words
     List<Word1D> words = wordFinder.getWords(line, rack);
 
-    //TODO if blank tiles were used, replace them
+    // TODO if blank tiles were used, replace them
 
     // Rate all of the words
     var ratedWords = new ArrayList<RatedWord>();
@@ -187,13 +155,12 @@ public class Board extends JFrame implements KeyListener {
     return ratedWords;
   }
 
-  private RatedWord findBestWord() {
+  public RatedWord findBestWord() {
     long startTime = System.currentTimeMillis();
 
     // If the board is invalid display an error
     if (!boardIsValid(null)) {
       userMessage = "Current board not valid";
-      setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       return null;
     }
 
@@ -238,7 +205,6 @@ public class Board extends JFrame implements KeyListener {
     }
     if (bestWord == null) {
       userMessage = "No words found";
-      setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     } else {
       long finishTime = System.currentTimeMillis();
       userMessage +=
@@ -246,63 +212,24 @@ public class Board extends JFrame implements KeyListener {
       userInterrupt = false;
     }
     System.out.println(userMessage);
-    setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-    repaint();
     return bestWord;
   }
 
-  @Override
-  public void keyTyped(KeyEvent e) {
-    if (xSelection != -1) {
-      if (Character.isAlphabetic(e.getKeyChar())) {
-        board[ySelection][xSelection] = Character.toUpperCase(e.getKeyChar());
-        occupiedTiles[ySelection][xSelection] = true;
-      } else if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-        board[ySelection][xSelection] = ' ';
-        occupiedTiles[ySelection][xSelection] = false;
-      }
-    } else if (handSelection != -1) {
-      if (Character.isAlphabetic(e.getKeyChar())) {
-        rack[handSelection] = Character.toUpperCase(e.getKeyChar());
-      } else if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE) {
-        rack[handSelection] = ' ';
-      } else if (e.getKeyChar() == ' ' || e.getKeyChar() == '-') {
-        rack[handSelection] = '_';
-      }
-    }
-    repaint();
+  public void userInterrupt() {
+    userInterrupt = true;
   }
 
-  @Override
-  public void keyPressed(KeyEvent e) {
-    if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
-      setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      findBestWord();
-    } else if (e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) {
-      userInterrupt = true;
-    } else if (handSelection == -1) {
-      if (e.getExtendedKeyCode() == KeyEvent.VK_LEFT && xSelection > 0) {
-        xSelection--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_RIGHT && xSelection < 14) {
-        xSelection++;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_UP && ySelection > 0) {
-        ySelection--;
-      } else if (e.getExtendedKeyCode() == KeyEvent.VK_DOWN && ySelection < 14) {
-        ySelection++;
-      }
-    } else {
-      if ((e.getExtendedKeyCode() == KeyEvent.VK_UP || e.getExtendedKeyCode() == KeyEvent.VK_LEFT)
-          && handSelection > 0) {
-        handSelection--;
-      } else if ((e.getExtendedKeyCode() == KeyEvent.VK_DOWN
-              || e.getExtendedKeyCode() == KeyEvent.VK_RIGHT)
-          && handSelection < 6) {
-        handSelection++;
-      }
-    }
-    repaint();
+  /**
+   * Place a tile with the given letter at the given location. If the letter is a space, remove the
+   * tile.
+   */
+  public void placeTile(char letter, int xSelection, int ySelection) {
+    occupiedTiles[ySelection][xSelection] = letter != ' '; // If placing a space that removes a tile
+    board[ySelection][xSelection] = Character.toUpperCase(letter);
   }
 
-  @Override
-  public void keyReleased(KeyEvent e) {}
+  /** Place a tile in the rack at the given location. */
+  public void placeInRack(char letter, int handSelection) {
+    rack[handSelection] = Character.toUpperCase(letter);
+  }
 }
