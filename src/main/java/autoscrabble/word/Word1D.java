@@ -1,29 +1,20 @@
 package autoscrabble.word;
 
 /** A word with an index specifying its starting position in a line */
-public class Word1D {
-  private final char[] chars;
+public class Word1D extends Word {
   private final int startIndex;
 
-  public Word1D(char[] chars, int startIndex) {
-    this.chars = chars;
+  public Word1D(String word, int startIndex) {
+    super(word);
     this.startIndex = startIndex;
   }
 
   @Override
   public String toString() {
-    return "Word1D{" + "startIndex=" + startIndex + ", word='" + String.valueOf(chars) + '\'' + '}';
+    return "Word1D{" + "startIndex=" + startIndex + ", word='" + word + '\'' + '}';
   }
 
   public int getStartIndex() {
     return startIndex;
-  }
-
-  public char[] getChars() {
-    return chars;
-  }
-
-  public String getAsString() {
-    return String.valueOf(chars);
   }
 }

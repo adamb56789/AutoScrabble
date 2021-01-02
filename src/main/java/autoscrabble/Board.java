@@ -169,9 +169,9 @@ public class Board {
     for (var word : words) {
       LocatedWord unratedWord;
       if (direction == Direction.HORIZONTAL) {
-        unratedWord = new LocatedWord(word.getAsString(), word.getStartIndex(), index, direction);
+        unratedWord = new LocatedWord(word.getWord(), word.getStartIndex(), index, direction);
       } else { // Vertical
-        unratedWord = new LocatedWord(word.getAsString(), index, word.getStartIndex(), direction);
+        unratedWord = new LocatedWord(word.getWord(), index, word.getStartIndex(), direction);
       }
       ratedWords.add((unratedWord.getRatedWord(rater)));
     }
