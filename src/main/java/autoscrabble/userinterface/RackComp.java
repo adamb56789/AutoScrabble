@@ -20,7 +20,9 @@ public class RackComp extends JComponent {
 
   public RackComp(Board board) {
     this.board = board;
-    setPreferredSize(new Dimension(RACK_WIDTH, RACK_HEIGHT));
+    var dimension = new Dimension(RACK_WIDTH, RACK_HEIGHT);
+    setPreferredSize(dimension);
+    setMinimumSize(dimension);
     // Add listeners
     addMouseListener(new SelectTileMouseListener());
     addKeyListener(new LetterKeyListener());

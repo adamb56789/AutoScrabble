@@ -69,8 +69,9 @@ public class BoardComp extends JComponent {
     }
 
     // Set up this component
-    setPreferredSize(
-        new Dimension(BOARD_SIZE + BOARD_RIGHT_SPACING, BOARD_SIZE + MESSAGE_Y_OFFSET));
+    var dimension = new Dimension(BOARD_SIZE + BOARD_RIGHT_SPACING, BOARD_SIZE + MESSAGE_Y_OFFSET + 10);
+    setMinimumSize(dimension);
+    setPreferredSize(dimension);
     setFocusable(true);
 
     // Add listeners
@@ -78,19 +79,20 @@ public class BoardComp extends JComponent {
     addKeyListener(new LetterKeyListener());
 
     // Prepare key bindings
-    getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ENTER"), FIND_WORD);
-    getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ESCAPE"), USER_INTERRUPT);
     getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("UP"), MOVE_UP);
     getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("DOWN"), MOVE_DOWN);
     getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("LEFT"), MOVE_LEFT);
     getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("RIGHT"), MOVE_RIGHT);
+    // Global hotkeys
+    getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ENTER"), FIND_WORD);
+    getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ESCAPE"), USER_INTERRUPT);
 
-    getActionMap().put(FIND_WORD, new FindWordAction());
-    getActionMap().put(USER_INTERRUPT, new UserInterruptAction());
     getActionMap().put(MOVE_UP, new MoveAction(0, -1));
     getActionMap().put(MOVE_DOWN, new MoveAction(0, 1));
     getActionMap().put(MOVE_LEFT, new MoveAction(-1, 0));
     getActionMap().put(MOVE_RIGHT, new MoveAction(1, 0));
+    getActionMap().put(FIND_WORD, new FindWordAction());
+    getActionMap().put(USER_INTERRUPT, new UserInterruptAction());
   }
 
   @Override
