@@ -187,28 +187,14 @@ public class Board extends JFrame implements KeyListener {
     return ratedWords;
   }
 
-  private void findBestWord() {
+  private RatedWord findBestWord() {
     long startTime = System.currentTimeMillis();
 
     // If the board is invalid display an error
     if (!boardIsValid(null)) {
       userMessage = "Current board not valid";
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-      return;
-    }
-
-    // Get the index of the blank tile in the rack
-    int blankIndex = -1;
-    for (int i = 0; i < rack.length; i++) {
-      if (rack[i] == '_') {
-        if (blankIndex != -1) {
-          // Using 2 blanks takes too long so don't allow it
-          userMessage = "Only one blank allowed";
-          setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-          return;
-        }
-        blankIndex = i;
-      }
+      return null;
     }
 
     // Find all possible words
@@ -231,10 +217,10 @@ public class Board extends JFrame implements KeyListener {
             .collect(Collectors.toList());
 
     // Get the first one that is valid
-    boolean foundWord = false;
+    RatedWord bestWord = null;
     for (var word : words) {
       if (boardIsValid(word)) {
-        foundWord = true;
+        bestWord = word;
         userMessage =
             String.format(
                 "Found %s at (%c%d) %s, scoring at least %s, ",
@@ -250,7 +236,7 @@ public class Board extends JFrame implements KeyListener {
         break;
       }
     }
-    if (!foundWord) {
+    if (bestWord == null) {
       userMessage = "No words found";
       setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     } else {
@@ -262,6 +248,7 @@ public class Board extends JFrame implements KeyListener {
     System.out.println(userMessage);
     setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     repaint();
+    return bestWord;
   }
 
   @Override
