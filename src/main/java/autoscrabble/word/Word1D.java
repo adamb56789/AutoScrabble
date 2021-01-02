@@ -9,6 +9,11 @@ public class Word1D extends Word {
     this.startIndex = startIndex;
   }
 
+  @Override
+  public String toString() {
+    return "Word1D{" + "startIndex=" + startIndex + ", word='" + word + '\'' + '}';
+  }
+
   public int getStartIndex() {
     return startIndex;
   }

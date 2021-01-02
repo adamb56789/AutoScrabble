@@ -1,7 +1,7 @@
 package autoscrabble;
 
 public class DictEntry {
-  private static final char[] ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+  public static final char[] ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
   private final String word;
   private final int alphabetMask;
 

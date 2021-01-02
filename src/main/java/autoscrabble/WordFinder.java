@@ -22,173 +22,91 @@ public class WordFinder {
     return Collections.binarySearch(dictionaryWords, s.toUpperCase()) >= 0;
   }
 
-  public List<Word1D> getWords(String line, char[] h) {
-    boolean rackContainsBlank = String.valueOf(h).chars().anyMatch(c -> c == '_');
-    // Counting max possible length of words, possible future sorting???
-
-    long t = System.nanoTime();
-    var words = getWordsFitInLine(line);
-    System.out.println((System.nanoTime() - t) / 1000000);
-
-    int[] handCount = new int[27];
-
-    for (char c : h) {
+  private int[] getLetterFrequency(char[] rack) {
+    int[] rackLetterFrequency = new int[DictEntry.ALPHABET.length];
+    for (char c : rack) {
       if (Character.isAlphabetic(c)) {
-        handCount[Character.getNumericValue(c) - 10]++;
+        rackLetterFrequency[Character.getNumericValue(c) - 10]++;
       }
     }
-    var validList1 = words.toArray(new Word1D[0]);
-    int validList1n = validList1.length;
-    Word1D[] validList2temp = new Word1D[validList1n];
-    if (rackContainsBlank) validList2temp = new Word1D[validList1n * 26];
-    int validList2n = 0;
-    if (!rackContainsBlank) { // Normal mode
-      for (Word1D word : validList1) {
-        int[] charCount = new int[26];
-        int k = 0;
-        int lettersPlaced = 0;
-        for (int j = word.getStartIndex();
-            j < word.getWord().length() + word.getStartIndex();
-            j++) {
-          if (line.charAt(j) == ' ') {
-            lettersPlaced++;
-            charCount[Character.getNumericValue(word.getWord().charAt(k)) - 10]++;
-          }
-          k++;
-        }
-
-        boolean valid = true;
-        for (int j = 0; j < 26; j++) {
-          if (lettersPlaced == 0) {
-            valid = false;
-          }
-          if (charCount[j] > handCount[j]) {
-            valid = false;
-          }
-        }
-        if (valid) {
-          validList2temp[validList2n] = word;
-          validList2n++;
-        }
-      }
-    } else { // With blank(s) in hand
-      for (Word1D word : validList1) {
-        int[] charCount = new int[26];
-        int k = 0;
-        int lettersPlaced = 0;
-        for (int j = word.getStartIndex();
-            j < word.getWord().length() + word.getStartIndex();
-            j++) {
-          if (line.charAt(j) == ' ') {
-            lettersPlaced++;
-            charCount[Character.getNumericValue(word.getWord().charAt(k)) - 10]++;
-          }
-          k++;
-        }
-        for (int m = 0; m < 26; m++) {
-          handCount[m]++;
-          boolean valid = true;
-          boolean blankUsed = false;
-          for (int j = 0; j < 26; j++) {
-            if (lettersPlaced == 0) {
-              valid = false;
-            }
-            if (charCount[j] <= handCount[j]) {
-              if (j == m) {
-                if (j - 1 != -1) {
-                  if ((charCount[j] > handCount[j] - 1)) {
-                    blankUsed = true;
-                  }
-                }
-              }
-            } else {
-              valid = false;
-            }
-          }
-
-          if (valid) {
-            validList2temp[validList2n] = word;
-            if (blankUsed) {
-              for (int o = 0;
-                  o < validList2temp[validList2n].getWord().length();
-                  o++) { // Make the first blank letter lower case (not 100% ideal)
-                if (Character.getNumericValue(validList2temp[validList2n].getWord().charAt(o)) - 10
-                    == m) {
-                  if (' ' == line.charAt(validList2temp[validList2n].getStartIndex() + o)) {
-                    validList2temp[validList2n].setWord(
-                        validList2temp[validList2n].getWord().substring(0, o)
-                            + Character.toLowerCase(validList2temp[validList2n].getWord().charAt(o))
-                            + validList2temp[validList2n].getWord().substring(o + 1));
-                    break;
-                  }
-                }
-              }
-            }
-            validList2n++;
-          }
-          handCount[m]--;
-        }
-      }
-    }
-
-    Word1D[] validList2 = new Word1D[validList2n];
-    System.arraycopy(validList2temp, 0, validList2, 0, validList2n);
-    Word1D[] validList3temp = new Word1D[validList2n];
-    int validList3n = 0;
-    for (int i = 0; i < validList2n; i++) {
-      boolean valid = true;
-
-      var i2 = validList2[i].getStartIndex() - 1;
-      if (i2 > 0 && ' ' != line.charAt(i2)) {
-        valid = false;
-      }
-
-      var i1 = validList2[i].getStartIndex() + validList2[i].getWord().length();
-      if (i1 < line.length() && ' ' != line.charAt(i1)) {
-        valid = false;
-      }
-
-      if (valid) {
-        validList3temp[validList3n] = validList2[i];
-        validList3n++;
-      }
-    }
-    Word1D[] validList3 = new Word1D[validList3n];
-    System.arraycopy(validList3temp, 0, validList3, 0, validList3n);
-    return List.of(validList3);
+    return rackLetterFrequency;
   }
 
-  /**
-   * Get words which fit on the line
-   */
-  private ArrayList<Word1D> getWordsFitInLine(String line) {
+  public List<Word1D> getWords(String line, char[] rack) {
+    int blankCount = (int) String.valueOf(rack).chars().filter(c -> c == '_').count();
+    // Counting max possible length of words, possible future sorting???
+
+    var rackMask = DictEntry.createAlphabetMask(String.valueOf(rack));
+    var lineMask = DictEntry.createAlphabetMask(line);
+    return dictionary.stream()
+        // Preliminarily filtering out words that will always fail to save time
+        .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask))
+        // Get all words that could fit on the given line
+        .map(entry -> getWordsFitInLine(line, entry.getWord(), line.toUpperCase()))
+        .flatMap(List::stream) // Merge words from each line
+        // Filter to words that can be placed with available tiles
+        .filter(word -> rackHasEnoughLetters(word, line, getLetterFrequency(rack), blankCount))
+        .collect(Collectors.toList());
+  }
+
+  private boolean preliminaryFilter(DictEntry entry, int blankCount, int rackMask, int lineMask) {
+    // Bitmasks where the nth bit is 1 if the string contains the nth letter of the alphabet
+    // First condition: the dictionary word and the line must have at least 1 matching letter
+    // Second: enough letters in the word must appear in the rack or line. Usually all of them,
+    // less if the rack has blank tiles.
+    // (rackMask | lineMask) is the mask for the letters in the rack and line combined.
+    // we then get all letters that are in the word and not in the rack or line, and count them
+    return (entry.getAlphabetMask() & lineMask) != 0
+        && Integer.bitCount(entry.getAlphabetMask() & ~(rackMask | lineMask)) <= blankCount;
+  }
+
+  private List<Word1D> getWordsFitInLine(String line, String entry, String upperCaseLine) {
     var list = new ArrayList<Word1D>();
-    String upperCaseLine = line.toUpperCase();
-    int lineAlphabetMask = DictEntry.createAlphabetMask(line);
-    for (var entry : dictionary) {
-      if ((entry.getAlphabetMask() & lineAlphabetMask) == 0) {
-        // Skip if the line and the word have no matching letters
-        continue;
+    for (int j = 0; j < line.length() - entry.length() + 1; j++) {
+      boolean collision = false;
+      boolean connectingLetterExists = false;
+      for (int k = j; k < entry.length() + j; k++) {
+        // We need to match with at least 1 letter already on the board
+        if (line.charAt(k) != ' ') {
+          connectingLetterExists = true;
+        }
+        // Check for collisions with letters on the board
+        if (upperCaseLine.charAt(k) != entry.charAt(k - j) && line.charAt(k) != ' ') {
+          collision = true;
+          break;
+        }
       }
-      for (int j = 0; j < line.length() - entry.getWord().length() + 1; j++) {
-        boolean collision = false;
-        boolean connectingLetterExists = false;
-        for (int k = j; k < entry.getWord().length() + j; k++) {
-          // We need to match with at least 1 letter already on the board
-          if (line.charAt(k) != ' ') {
-            connectingLetterExists = true;
-          }
-          // Check for collisions with letters on the board
-          if (upperCaseLine.charAt(k) != entry.getWord().charAt(k - j) && line.charAt(k) != ' ') {
-            collision = true;
-            break;
-          }
-        }
-        if (!collision && connectingLetterExists) {
-          list.add(new Word1D(entry.getWord(), j));
-        }
+      if (!collision && connectingLetterExists) {
+        list.add(new Word1D(entry, j));
       }
     }
     return list;
+  }
+
+  private boolean rackHasEnoughLetters(
+      Word1D word, String line, int[] rackLetterFrequency, int blankCount) {
+    int[] remainingLetters = rackLetterFrequency.clone();
+    boolean placedALetter = false; // If we do not place a letter then the word is already there
+    boolean ranOutOfLetters = false;
+    int blanksRemaining = blankCount;
+    for (int j = 0; j < word.getWord().length(); j++) { // Iterate through the word
+      // If the corresponding position on the line is empty we must fill it from the rack
+      if (line.charAt(j + word.getStartIndex()) == ' ') {
+        placedALetter = true;
+        // Decrement the count of the letter
+        int letterIndex = Character.getNumericValue(word.getWord().charAt(j)) - 10;
+        remainingLetters[letterIndex]--;
+        if (remainingLetters[letterIndex] < 0) {
+          // If we are out of letters check if we have a blank, or fail
+          if (blanksRemaining > 0) {
+            blanksRemaining--;
+          } else {
+            ranOutOfLetters = true;
+            break;
+          }
+        }
+      }
+    }
+    return !ranOutOfLetters && placedALetter;
   }
 }

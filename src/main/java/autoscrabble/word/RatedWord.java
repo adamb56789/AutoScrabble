@@ -14,4 +14,9 @@ public class RatedWord extends LocatedWord {
   public double getRating() {
     return rating;
   }
+
+  @Override
+  public String toString() {
+    return "RatedWord{" + "rating=" + rating + ", word='" + word + '\'' + '}';
+  }
 }

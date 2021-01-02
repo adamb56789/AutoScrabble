@@ -1,8 +1,8 @@
 package autoscrabble;
 
-import autoscrabble.word.Word1D;
 import autoscrabble.word.LocatedWord;
 import autoscrabble.word.RatedWord;
+import autoscrabble.word.Word1D;
 
 import javax.swing.*;
 import java.awt.*;
@@ -170,6 +170,8 @@ public class Board extends JFrame implements KeyListener {
     // Get a list of possible words
     List<Word1D> words = wordFinder.getWords(line, rack);
 
+    //TODO if blank tiles were used, replace them
+
     // Rate all of the words
     var ratedWords = new ArrayList<RatedWord>();
     var rater = new Rater(this);
@@ -211,9 +213,10 @@ public class Board extends JFrame implements KeyListener {
 
     // Find all possible words
     var lines = getLines(board);
+    // Merge lists
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-            .parallel() // I am speed
+            //            .parallel() // I am speed
             .mapToObj(
                 i -> {
                   // Get the row index if horizontal or col index if vertical, and the direction
@@ -222,41 +225,40 @@ public class Board extends JFrame implements KeyListener {
                   return generateWordsOnLine(rack, lines.get(i), index, direction);
                 })
             .filter(Objects::nonNull) // Remove any lines that were skipped
-            .flatMap(List::stream) // Merge lists
+            .flatMap(List::stream) // Merge lists from each line
+            // Sort the words descending by score
+            .sorted(Collections.reverseOrder(Comparator.comparingDouble(RatedWord::getRating)))
             .collect(Collectors.toList());
 
-    if (words.size() == 0) {
-      userMessage = "No words found";
-      setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-      return;
-    } else {
-      // Sort the words descending by score
-      words.sort(Collections.reverseOrder(Comparator.comparingDouble(RatedWord::getRating)));
-
-      // Get the first one that is valid
-      for (var word : words) {
-        if (boardIsValid(word)) {
-          userMessage =
-              String.format(
-                  "Found %s at (%c%d) %s, scoring at least %s, ",
-                  word.getWord(),
-                  ((char) (word.getX() + 97)),
-                  (15 - word.getY()),
-                  word.isHorizontal() ? "horizontally" : "vertically",
-                  word.getRating());
-          break;
-        }
-        if (userInterrupt) {
-          userMessage = "Cancelled ";
-          break;
-        }
+    // Get the first one that is valid
+    boolean foundWord = false;
+    for (var word : words) {
+      if (boardIsValid(word)) {
+        foundWord = true;
+        userMessage =
+            String.format(
+                "Found %s at (%c%d) %s, scoring at least %s, ",
+                word.getWord(),
+                ((char) (word.getX() + 97)),
+                (15 - word.getY()),
+                word.isHorizontal() ? "horizontally" : "vertically",
+                word.getRating());
+        break;
+      }
+      if (userInterrupt) {
+        userMessage = "Cancelled ";
+        break;
       }
     }
-
-    long finishTime = System.currentTimeMillis();
-    userMessage +=
-        String.format("%s %d ms", userInterrupt ? "after" : "in", (finishTime - startTime));
-    userInterrupt = false;
+    if (!foundWord) {
+      userMessage = "No words found";
+      setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+    } else {
+      long finishTime = System.currentTimeMillis();
+      userMessage +=
+          String.format("%s %d ms", userInterrupt ? "after" : "in", (finishTime - startTime));
+      userInterrupt = false;
+    }
     System.out.println(userMessage);
     setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     repaint();
