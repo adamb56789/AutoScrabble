@@ -11,6 +11,7 @@ import java.util.Random;
 
 public class App {
   public static final Color BACKGROUND_COLOUR = Color.decode("#F3F3F3");
+  static Random random = new Random(0);
   private static Board board;
 
   public static void main(String[] args) {
@@ -80,6 +81,7 @@ public class App {
 
     double totalRating = 0;
     int moveCount = 0;
+    long start = System.nanoTime();
     while (true) {
       var word = board.findBestWord();
       if (word == null) {
@@ -97,13 +99,14 @@ public class App {
       }
       gui.repaint();
     }
-    System.out.printf("Moves: %d%nTotal score: %.0f%nAverage: %.1f%n", moveCount, totalRating, totalRating / moveCount);
+    System.out.printf(
+        "Moves: %d%nTotal score: %.0f%nAverage: %.1f%nTime: %.1f ms%n",
+        moveCount, totalRating, totalRating / moveCount, (System.nanoTime() - start) / 1000000.0);
     gui.repaint();
   }
 
   private static char drawTile(ArrayList<Character> bag) {
-    Random rand = new Random();
-    int randomIndex = rand.nextInt(bag.size());
+    int randomIndex = random.nextInt(bag.size());
     var character = bag.get(randomIndex);
     bag.remove(randomIndex);
     return character;
