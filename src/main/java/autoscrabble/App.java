@@ -72,6 +72,8 @@ public class App {
         bag.add((char) (65 + i));
       }
     }
+    bag.add('_');
+    bag.add('_');
 
     for (int i = 0; i < 7; i++) {
       board.placeInRack(drawTile(bag), i);

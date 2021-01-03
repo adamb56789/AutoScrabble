@@ -223,7 +223,7 @@ public class BoardComp extends JComponent {
     public void keyTyped(KeyEvent e) {
       char keyChar = e.getKeyChar();
       if (Character.isAlphabetic(keyChar)) {
-        board.placeTile(keyChar, xSelection, ySelection);
+        board.placeTile(Character.toUpperCase(keyChar), xSelection, ySelection);
       } else if (keyChar == KeyEvent.VK_BACK_SPACE) {
         board.placeTile(' ', xSelection, ySelection);
       }

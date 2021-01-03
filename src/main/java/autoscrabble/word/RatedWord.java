@@ -7,7 +7,7 @@ public class RatedWord extends LocatedWord {
   private final double rating;
 
   public RatedWord(String word, int x, int y, Direction direction, double rating) {
-    super(word, x, y, direction);
+    super(word, x, y, direction, null, false);
     this.rating = rating;
   }
 
@@ -17,6 +17,6 @@ public class RatedWord extends LocatedWord {
 
   @Override
   public String toString() {
-    return "RatedWord{" + "rating=" + rating + ", word='" + word + '\'' + '}';
+    return "RatedWord{" + "rating=" + rating + ", word='" + string + '\'' + '}';
   }
 }

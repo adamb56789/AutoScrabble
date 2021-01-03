@@ -3,7 +3,7 @@ package autoscrabble;
 public class DictEntry {
   public static final char[] ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
   private final String word;
-  private final int alphabetMask;
+  final int alphabetMask;
 
   public DictEntry(String word) {
     this.word = word;

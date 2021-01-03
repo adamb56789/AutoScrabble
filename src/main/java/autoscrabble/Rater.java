@@ -4,7 +4,6 @@ import autoscrabble.word.Letter;
 import autoscrabble.word.LocatedWord;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.OptionalInt;
 
@@ -33,6 +32,17 @@ public class Rater {
     this.board = board;
   }
 
+  public static int getLetterMultiplier(Letter letter) {
+    switch (BONUSES[letter.getY()][letter.getX()]) {
+      case 'l':
+        return 2;
+      case 'L':
+        return 3;
+      default:
+        return 1;
+    }
+  }
+
   private double rateWord(List<Letter> word) {
     // Add up the scores of the letters
     double total = word.stream().mapToDouble(this::rateLetter).sum();
@@ -55,14 +65,7 @@ public class Rater {
     if (!letter.justPlaced()) {
       return letterScore;
     }
-    switch (BONUSES[letter.getY()][letter.getX()]) {
-      case 'l':
-        return letterScore * 2;
-      case 'L':
-        return letterScore * 3;
-      default:
-        return letterScore;
-    }
+    return letterScore * getLetterMultiplier(letter);
   }
 
   private int wordMultiplier(List<Letter> word) {

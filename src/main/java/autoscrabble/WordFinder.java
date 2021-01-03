@@ -37,16 +37,23 @@ public class WordFinder {
     // Counting max possible length of words, possible future sorting???
 
     var rackMask = DictEntry.createAlphabetMask(String.valueOf(rack));
-    var lineMask = DictEntry.createAlphabetMask(line);
+    var lineMask = DictEntry.createAlphabetMask(line.toUpperCase());
     return dictionary.stream()
-        // Preliminarily filtering out words that will always fail to save time
+        // Preliminarily filtering out words that will always fail to save time ~25x speedup
         .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask))
         // Get all words that could fit on the given line
         .map(entry -> getWordsFitInLine(line, entry.getWord(), line.toUpperCase()))
         .flatMap(List::stream) // Merge words from each line
+        .filter(word -> endsNotBlocked(word, line))
         // Filter to words that can be placed with available tiles
         .filter(word -> rackHasEnoughLetters(word, line, getLetterFrequency(rack), blankCount))
         .collect(Collectors.toList());
+  }
+
+  private boolean endsNotBlocked(Word1D word, String line) {
+    return (word.startIndex == 0 || line.charAt(word.startIndex - 1) == ' ')
+        && (word.startIndex + word.length == line.length()
+            || line.charAt(word.startIndex + word.length) == ' ');
   }
 
   private boolean preliminaryFilter(DictEntry entry, int blankCount, int rackMask, int lineMask) {
@@ -56,8 +63,8 @@ public class WordFinder {
     // less if the rack has blank tiles.
     // (rackMask | lineMask) is the mask for the letters in the rack and line combined.
     // we then get all letters that are in the word and not in the rack or line, and count them
-    return (entry.getAlphabetMask() & lineMask) != 0
-        && Integer.bitCount(entry.getAlphabetMask() & ~(rackMask | lineMask)) <= blankCount;
+    return (entry.alphabetMask & lineMask) != 0
+        && Integer.bitCount(entry.alphabetMask & ~(rackMask | lineMask)) <= blankCount;
   }
 
   private List<Word1D> getWordsFitInLine(String line, String entry, String upperCaseLine) {
@@ -89,12 +96,12 @@ public class WordFinder {
     boolean placedALetter = false; // If we do not place a letter then the word is already there
     boolean ranOutOfLetters = false;
     int blanksRemaining = blankCount;
-    for (int j = 0; j < word.getWord().length(); j++) { // Iterate through the word
+    for (int j = 0; j < word.string.length(); j++) { // Iterate through the word
       // If the corresponding position on the line is empty we must fill it from the rack
-      if (line.charAt(j + word.getStartIndex()) == ' ') {
+      if (line.charAt(j + word.startIndex) == ' ') {
         placedALetter = true;
         // Decrement the count of the letter
-        int letterIndex = Character.getNumericValue(word.getWord().charAt(j)) - 10;
+        int letterIndex = Character.getNumericValue(word.string.charAt(j)) - 10;
         remainingLetters[letterIndex]--;
         if (remainingLetters[letterIndex] < 0) {
           // If we are out of letters check if we have a blank, or fail
@@ -107,6 +114,18 @@ public class WordFinder {
         }
       }
     }
-    return !ranOutOfLetters && placedALetter;
+    boolean validWord = !ranOutOfLetters && placedALetter;
+    if (validWord && blankCount - blanksRemaining > 0) {
+      // If we used blanks, mark the word with which letter(s) they were needed for and how many
+      for (int i = 0; i < remainingLetters.length; i++) {
+        if (remainingLetters[i] < 0) {
+          remainingLetters[i] = -remainingLetters[i];
+        } else {
+          remainingLetters[i] = 0;
+        }
+        word.setBlankRequirements(remainingLetters);
+      }
+    }
+    return validWord;
   }
 }

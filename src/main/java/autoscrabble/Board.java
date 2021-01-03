@@ -79,31 +79,31 @@ public class Board {
 
   /** Place the given word on the given board. */
   public static void placeWord(LocatedWord word, char[][] board) {
-    for (int i = 0; i < word.getWord().length(); i++) {
+    for (int i = 0; i < word.string.length(); i++) {
       if (word.isHorizontal()) {
-        board[word.getY()][word.getX() + i] = word.getWord().charAt(i);
+        board[word.y][word.x + i] = word.string.charAt(i);
       } else {
-        board[word.getY() + i][word.getX()] = word.getWord().charAt(i);
+        board[word.y + i][word.x] = word.string.charAt(i);
       }
     }
   }
 
   /** Make a move by placing a word on the board and removing tiles from the rack. */
   public void makeMove(RatedWord word) {
-    for (int i = 0; i < word.getWord().length(); i++) {
+    for (int i = 0; i < word.string.length(); i++) {
       int x, y;
       if (word.isHorizontal()) {
-        x = word.getX() + i;
-        y = word.getY();
+        x = word.x + i;
+        y = word.y;
       } else {
-        x = word.getX();
-        y = word.getY() + i;
+        x = word.x;
+        y = word.y + i;
       }
-      board[y][x] = word.getWord().charAt(i);
+      board[y][x] = word.string.charAt(i);
       if (!occupiedTiles[y][x]) {
         occupiedTiles[y][x] = true;
         for (int j = 0; j < rack.length; j++) {
-          if (rack[j] == board[y][x]) {
+          if (rack[j] == board[y][x] || Character.isLowerCase(board[y][x]) && rack[j] == '_') {
             rack[j] = ' ';
           }
         }
@@ -161,19 +161,56 @@ public class Board {
     // Get a list of possible words
     List<Word1D> words = wordFinder.getWords(line, rack);
 
-    // TODO if blank tiles were used, replace them
-
     // Rate all of the words
     var ratedWords = new ArrayList<RatedWord>();
     var rater = new Rater(this);
     for (var word : words) {
-      LocatedWord unratedWord;
+      LocatedWord lWord;
+      boolean[] letterAlreadyPlaced = new boolean[word.length];
+      int[] letterMultiplier = new int[word.length];
       if (direction == Direction.HORIZONTAL) {
-        unratedWord = new LocatedWord(word.getWord(), word.getStartIndex(), index, direction);
+        lWord = new LocatedWord(word, word.startIndex, index, direction);
+        for (int i = lWord.x; i < lWord.x + word.length; i++) {
+          letterAlreadyPlaced[i - lWord.x] = occupiedTiles[lWord.y][i];
+          letterMultiplier[i - lWord.x] = Rater.BONUSES[lWord.y][i];
+        }
       } else { // Vertical
-        unratedWord = new LocatedWord(word.getWord(), index, word.getStartIndex(), direction);
+        lWord = new LocatedWord(word, index, word.startIndex, direction);
+        for (int i = lWord.y; i < lWord.y + word.length; i++) {
+          letterAlreadyPlaced[i - lWord.y] = occupiedTiles[i][lWord.x];
+          letterMultiplier[i - lWord.y] = Rater.BONUSES[i][lWord.x];
+        }
       }
-      ratedWords.add((unratedWord.getRatedWord(rater)));
+
+      // Blanks already on the board need to appear in the word
+      char[] wordArr = lWord.string.toCharArray();
+      for (int i = 0; i < lWord.length; i++) {
+        if (letterAlreadyPlaced[i]) {
+          wordArr[i] = line.charAt(i + word.startIndex);
+        }
+      }
+
+      if (word.blanksNeeded) {
+        // If there are blanks, put the blanks in the optimal position to avoid letter multipliers
+        for (int i = 0; i < word.blankRequirements.length; i++) {
+          var blankIndexList = new ArrayList<Integer>();
+          for (int j = 0; j < word.length; j++) {
+            // If a blank is required for this letter
+            int charI = word.string.charAt(j) - 65;
+            if (i == charI && !letterAlreadyPlaced[j] && word.blankRequirements[charI] > 0) {
+              blankIndexList.add(j);
+            }
+          }
+          // Sort in ascending order by the letter multiplier at that location
+          blankIndexList.sort(Comparator.comparingInt(j -> letterMultiplier[j]));
+          // Set the characters in the word to be blank-using
+          for (int j = 0; j < word.blankRequirements[i]; j++) {
+            wordArr[blankIndexList.get(j)] = Character.toLowerCase(wordArr[blankIndexList.get(j)]);
+          }
+        }
+      }
+      lWord.string = String.valueOf(wordArr);
+      ratedWords.add((lWord.getRatedWord(rater)));
     }
     return ratedWords;
   }
@@ -192,7 +229,7 @@ public class Board {
     // Merge lists
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-//                        .parallel() // I am speed
+            .parallel() // I am speed
             .mapToObj(
                 i -> {
                   // Get the row index if horizontal or col index if vertical, and the direction
@@ -213,10 +250,10 @@ public class Board {
         bestWord = word;
         userMessage =
             String.format(
-                "Found %s at (%c%d) %s, scoring at least %.0f, ",
-                word.getWord(),
-                ((char) (word.getX() + 97)),
-                (15 - word.getY()),
+                "Found %s at (%c%d) %s, scoring %.0f, ",
+                word.string,
+                ((char) (word.x + 97)),
+                (15 - word.y),
                 word.isHorizontal() ? "horizontally" : "vertically",
                 word.getRating());
         break;
@@ -248,7 +285,7 @@ public class Board {
    */
   public void placeTile(char letter, int xSelection, int ySelection) {
     occupiedTiles[ySelection][xSelection] = letter != ' '; // If placing a space that removes a tile
-    board[ySelection][xSelection] = Character.toUpperCase(letter);
+    board[ySelection][xSelection] = letter;
   }
 
   /** Place a tile in the rack at the given location. */

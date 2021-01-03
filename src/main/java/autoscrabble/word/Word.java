@@ -2,17 +2,11 @@ package autoscrabble.word;
 
 /** Word base class. */
 public abstract class Word {
-  protected String word;
+  public String string;
+  public final int length;
 
   public Word(String word) {
-    this.word = word;
-  }
-
-  public String getWord() {
-    return word;
-  }
-
-  public void setWord(String word) {
-    this.word = word;
+    this.string = word;
+    length = word.length();
   }
 }

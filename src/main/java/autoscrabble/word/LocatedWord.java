@@ -3,33 +3,40 @@ package autoscrabble.word;
 import autoscrabble.Direction;
 import autoscrabble.Rater;
 
-/** A word with a specified starting location and direction. */
-public class LocatedWord extends Word {
-  private final int x;
-  private final int y;
-  private final Direction direction;
+import java.util.Arrays;
 
-  public LocatedWord(String word, int x, int y, Direction direction) {
-    super(word);
+/** A word with a specified starting location and direction. */
+public class LocatedWord extends BlankRequiredWord {
+  public final int x;
+  public final int y;
+  public final Direction direction;
+
+  public LocatedWord(Word1D word, int x, int y, Direction direction) {
+    this(word.string, x, y, direction, word.blankRequirements, word.blanksNeeded);
+  }
+
+  protected LocatedWord(
+      String word,
+      int x,
+      int y,
+      Direction direction,
+      int[] blankRequirements,
+      boolean needsBlanks) {
+    super(word, blankRequirements, needsBlanks);
     this.x = x;
     this.y = y;
     this.direction = direction;
   }
 
+  @Override
+  public String toString() {
+    return String.format(
+        "LocatedWord{x=%d, y=%d, direction=%s, blankRequirements=%s, string='%s'}",
+        x, y, direction, Arrays.toString(blankRequirements), string);
+  }
+
   public RatedWord getRatedWord(Rater rater) {
-    return new RatedWord(word, x, y, direction, rater.rate(this));
-  }
-
-  public int getX() {
-    return x;
-  }
-
-  public int getY() {
-    return y;
-  }
-
-  public Direction getDirection() {
-    return direction;
+    return new RatedWord(string, x, y, direction, rater.rate(this));
   }
 
   public boolean isHorizontal() {
