@@ -79,8 +79,6 @@ public class App {
       board.placeInRack(drawTile(bag), i);
     }
 
-    board.placeTile('e', 8, 7);
-
     double totalRating = 0;
     int moveCount = 0;
     long start = System.nanoTime();

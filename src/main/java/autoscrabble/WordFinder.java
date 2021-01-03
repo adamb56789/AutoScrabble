@@ -38,12 +38,13 @@ public class WordFinder {
 
     var rackMask = DictEntry.createAlphabetMask(String.valueOf(rack));
     var lineMask = DictEntry.createAlphabetMask(line.toUpperCase());
+    boolean firstMove = !board.isGameStarted();
     return dictionary.stream()
         .parallel()
-        // Preliminarily filtering out words that will always fail to save time ~25x speedup
-        .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask))
+        // Preliminarily filtering out words that will always fail to save time  TODO x speedup
+        .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask, firstMove))
         // Get all words that could fit on the given line
-        .map(entry -> getWordsFitInLine(line, entry.getWord(), line.toUpperCase()))
+        .map(entry -> getWordsFitInLine(line, entry.getWord(), line.toUpperCase(), firstMove))
         .flatMap(List::stream) // Merge words from each line
         // Check that the word is not directly touching another
         .filter(word -> endsAreFree(word, line))
@@ -122,18 +123,20 @@ public class WordFinder {
             || line.charAt(word.startIndex + word.length) == ' ');
   }
 
-  private boolean preliminaryFilter(DictEntry entry, int blankCount, int rackMask, int lineMask) {
+  private boolean preliminaryFilter(DictEntry entry, int blankCount, int rackMask, int lineMask, boolean firstMove) {
     // Bitmasks where the nth bit is 1 if the string contains the nth letter of the alphabet
     // First condition: the dictionary word and the line must have at least 1 matching letter
+    // (skip if on the first move)
     // Second: enough letters in the word must appear in the rack or line. Usually all of them,
     // less if the rack has blank tiles.
     // (rackMask | lineMask) is the mask for the letters in the rack and line combined.
     // we then get all letters that are in the word and not in the rack or line, and count them
-    return (entry.alphabetMask & lineMask) != 0
+    return ((entry.alphabetMask & lineMask) != 0 || firstMove)
         && Integer.bitCount(entry.alphabetMask & ~(rackMask | lineMask)) <= blankCount;
   }
 
-  private List<Word1D> getWordsFitInLine(String line, String entry, String upperCaseLine) {
+  private List<Word1D> getWordsFitInLine(
+      String line, String entry, String upperCaseLine, boolean firstMove) {
     var list = new ArrayList<Word1D>();
     for (int j = 0; j < line.length() - entry.length() + 1; j++) {
       boolean collision = false;
@@ -143,13 +146,16 @@ public class WordFinder {
         if (line.charAt(k) != ' ') {
           connectingLetterExists = true;
         }
+        if (firstMove && k == Board.SIZE / 2) {
+          connectingLetterExists = true;
+        }
         // Check for collisions with letters on the board
         if (upperCaseLine.charAt(k) != entry.charAt(k - j) && line.charAt(k) != ' ') {
           collision = true;
           break;
         }
       }
-      if (!collision && connectingLetterExists) {
+      if (!collision && (connectingLetterExists)) {
         list.add(new Word1D(entry, j));
       }
     }

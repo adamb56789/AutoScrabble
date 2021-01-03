@@ -36,6 +36,7 @@ public class Board {
   private final boolean[][] occupiedTiles = new boolean[board.length][board.length];
   private boolean userInterrupt;
   private String userMessage = "";
+  private boolean gameStarted = false;
 
   public Board() {
     var inputStream = getClass().getClassLoader().getResourceAsStream("Dictionary.txt");
@@ -146,18 +147,8 @@ public class Board {
         .allMatch(wordFinder::isWord); // Check against the dictionary
   }
 
-  /**
-   * Generate all possible words that could be placed on the given line. The index is the row or
-   * column index of the line.
-   */
-  private List<LocatedWord> generateWordsOnLine(
-      char[] rack, String line, int index, Direction direction) {
-    // If line is blank then skip
-    if (line.isBlank()) {
-      return null;
-    }
-    // Get a list of possible words
-    return wordFinder.getWords(this, line, rack, direction, index);
+  public boolean isGameStarted() {
+    return gameStarted;
   }
 
   public RatedWord findBestWord() {
@@ -175,10 +166,18 @@ public class Board {
             .parallel()
             .mapToObj(
                 i -> {
-                  // Get the row index if horizontal or col index if vertical, and the direction
+                  String line = getLines(board).get(i);
+                  // If this is the first move then the line must go through the centre
+                  // If not also skip if the line is blank
+                  if (!gameStarted && i != SIZE / 2 && i != SIZE + SIZE / 2
+                      || gameStarted && line.isBlank()) {
+                    return null;
+                  }
+                  // Get a list of possible words
+                  Direction direction =
+                      i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
                   int index = i < board.length ? i : i - board.length;
-                  var direction = i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
-                  return generateWordsOnLine(rack, getLines(board).get(i), index, direction);
+                  return wordFinder.getWords(this, line, rack, direction, index);
                 })
             .filter(Objects::nonNull) // Remove any lines that were skipped
             .flatMap(List::stream) // Merge lists from each line
@@ -216,6 +215,7 @@ public class Board {
       userInterrupt = false;
     }
     System.out.println(userMessage);
+    gameStarted = true;
     return bestWord;
   }
 
