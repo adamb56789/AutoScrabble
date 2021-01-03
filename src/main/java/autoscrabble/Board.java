@@ -80,7 +80,7 @@ public class Board {
   /** Place the given word on the given board. */
   public static void placeWord(LocatedWord word, char[][] board) {
     for (int i = 0; i < word.string.length(); i++) {
-      if (word.isHorizontal()) {
+      if (word.isHorizontal) {
         board[word.y][word.x + i] = word.string.charAt(i);
       } else {
         board[word.y + i][word.x] = word.string.charAt(i);
@@ -92,7 +92,7 @@ public class Board {
   public void makeMove(RatedWord word) {
     for (int i = 0; i < word.string.length(); i++) {
       int x, y;
-      if (word.isHorizontal()) {
+      if (word.isHorizontal) {
         x = word.x + i;
         y = word.y;
       } else {
@@ -151,7 +151,7 @@ public class Board {
    * Generate all possible words that could be placed on the given line. The index is the row or
    * column index of the line.
    */
-  private List<RatedWord> generateWordsOnLine(
+  private List<LocatedWord> generateWordsOnLine(
       char[] rack, String line, int index, Direction direction) {
     // If line is blank then skip
     if (line.isBlank()) {
@@ -161,9 +161,7 @@ public class Board {
     // Get a list of possible words
     List<Word1D> words = wordFinder.getWords(line, rack);
 
-    // Rate all of the words
-    var ratedWords = new ArrayList<RatedWord>();
-    var rater = new Rater(this);
+    var locatedWords = new ArrayList<LocatedWord>();
     for (var word : words) {
       LocatedWord lWord;
       boolean[] letterAlreadyPlaced = new boolean[word.length];
@@ -176,7 +174,7 @@ public class Board {
             letterAlreadyPlaced[i - lWord.x] = occupiedTiles[lWord.y][i];
             wordArr[i - lWord.x] = line.charAt(i);
           }
-          letterMultiplier[i - lWord.x] = Rater.BONUSES[lWord.y][i];
+          letterMultiplier[i - lWord.x] = Rater.LETTER_BONUSES[lWord.y][i];
         }
       } else { // Vertical
         lWord = new LocatedWord(word, index, word.startIndex, direction);
@@ -185,7 +183,7 @@ public class Board {
             letterAlreadyPlaced[i - lWord.y] = true;
             wordArr[i - lWord.y] = line.charAt(i);
           }
-          letterMultiplier[i - lWord.y] = Rater.BONUSES[i][lWord.x];
+          letterMultiplier[i - lWord.y] = Rater.LETTER_BONUSES[i][lWord.x];
         }
       }
 
@@ -193,9 +191,9 @@ public class Board {
         positionBlank(word, letterAlreadyPlaced, letterMultiplier, wordArr);
       }
       lWord.string = String.valueOf(wordArr);
-      ratedWords.add((lWord.getRatedWord(rater)));
+      locatedWords.add(lWord);
     }
-    return ratedWords;
+    return locatedWords;
   }
 
   private void positionBlank(
@@ -227,22 +225,20 @@ public class Board {
       userMessage = "Current board not valid";
       return null;
     }
-
-    // Find all possible words
-    var lines = getLines(board);
-    // Merge lists
+    var rater = new Rater(this);
+    // Find all possible words that fit in the line
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-            //            .parallel() // I am speed
             .mapToObj(
                 i -> {
                   // Get the row index if horizontal or col index if vertical, and the direction
                   int index = i < board.length ? i : i - board.length;
                   var direction = i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
-                  return generateWordsOnLine(rack, lines.get(i), index, direction);
+                  return generateWordsOnLine(rack, getLines(board).get(i), index, direction);
                 })
             .filter(Objects::nonNull) // Remove any lines that were skipped
             .flatMap(List::stream) // Merge lists from each line
+            .map(word -> word.getRatedWord(rater)) // Rate the words
             // Sort the words descending by score
             .sorted(Collections.reverseOrder(Comparator.comparingDouble(RatedWord::getRating)))
             .collect(Collectors.toList());
@@ -258,7 +254,7 @@ public class Board {
                 word.string,
                 ((char) (word.x + 97)),
                 (15 - word.y),
-                word.isHorizontal() ? "horizontally" : "vertically",
+                word.isHorizontal ? "horizontally" : "vertically",
                 word.getRating());
         break;
       }

@@ -26,26 +26,56 @@ public class Rater {
     {' ', 'w', ' ', ' ', ' ', 'L', ' ', ' ', ' ', 'L', ' ', ' ', ' ', 'w', ' '},
     {'W', ' ', ' ', 'l', ' ', ' ', ' ', 'W', ' ', ' ', ' ', 'l', ' ', ' ', 'W'}
   };
+  public static final int[][] LETTER_BONUSES = computeLetterBonuses();
+  public static final int[][] WORD_BONUSES = computeWordBonuses();
   private final Board board;
 
   public Rater(Board board) {
     this.board = board;
   }
 
-  public static int getLetterMultiplier(Letter letter) {
-    switch (BONUSES[letter.getY()][letter.getX()]) {
-      case 'l':
-        return 2;
-      case 'L':
-        return 3;
-      default:
-        return 1;
+  private static int[][] computeLetterBonuses() {
+    int[][] arr = new int[BONUSES.length][BONUSES.length];
+    for (int i = 0; i < BONUSES.length; i++) {
+      for (int j = 0; j < BONUSES.length; j++) {
+        switch (BONUSES[i][j]) {
+          case 'l':
+            arr[i][j] = 2;
+            break;
+          case 'L':
+            arr[i][j] = 3;
+            break;
+          default:
+            arr[i][j] = 1;
+            break;
+        }
+      }
     }
+    return arr;
   }
 
-  private double rateWord(List<Letter> word) {
+  private static int[][] computeWordBonuses() {
+    int[][] arr = new int[BONUSES.length][BONUSES.length];
+    for (int i = 0; i < BONUSES.length; i++) {
+      for (int j = 0; j < BONUSES.length; j++) {
+        switch (BONUSES[i][j]) {
+          case 'w':
+            arr[i][j] = 2;
+            break;
+          case 'W':
+            arr[i][j] = 3;
+            break;
+          default:
+            arr[i][j] = 1;
+        }
+      }
+    }
+    return arr;
+  }
+
+  private int rateWord(List<Letter> word) {
     // Add up the scores of the letters
-    double total = word.stream().mapToDouble(this::rateLetter).sum();
+    int total = word.stream().mapToInt(this::rateLetter).sum();
 
     // Apply any potential word multipliers
     total *= wordMultiplier(word);
@@ -65,62 +95,87 @@ public class Rater {
     if (!letter.justPlaced()) {
       return letterScore;
     }
-    return letterScore * getLetterMultiplier(letter);
+    return letterScore * LETTER_BONUSES[letter.getY()][letter.getX()];
   }
 
   private int wordMultiplier(List<Letter> word) {
     int multiplier = 1;
     for (var letter : word) {
       if (letter.justPlaced()) {
-        switch (BONUSES[letter.getY()][letter.getX()]) {
-          case 'w':
-            multiplier *= 2;
-            break;
-          case 'W':
-            multiplier *= 3;
-            break;
-        }
+        multiplier *= WORD_BONUSES[letter.getY()][letter.getX()];
       }
     }
     return multiplier;
   }
 
   public int rate(LocatedWord word) {
-    char[][] boardCopy = board.getBoardCopy();
-    int rating = 0;
-
-    Board.placeWord(word, boardCopy);
-    var lines = Board.getLines(boardCopy);
-
-    // Also compute the horizontal and vertical lines for the tiles that have already been rated
-    boolean[][] alreadyRatedLines = new boolean[Board.SIZE * 2][Board.SIZE];
-    // Copy rows
-    System.arraycopy(board.getOccupiedTiles(), 0, alreadyRatedLines, 0, Board.SIZE);
-    // Copy columns
-    for (int i = Board.SIZE; i < Board.SIZE * 2; i++) {
-      for (int j = 0; j < Board.SIZE; j++) {
-        alreadyRatedLines[i][j] = board.getOccupiedTiles()[j][i - Board.SIZE];
+    boolean[][] occupiedTiles = board.getOccupiedTiles();
+    char[][] board = this.board.getBoard();
+    // Compute and filter all lines that need to be evaluated
+    var lines = new ArrayList<LineData>();
+    if (word.isHorizontal) {
+      char[] row = board[word.y].clone(); // Clone the row
+      for (int i = 0; i < word.length; i++) {
+        row[word.x + i] = word.string.charAt(i); // Place the tiles
       }
-    }
+      lines.add(new LineData(row, occupiedTiles[word.y], true, word.x));
 
-    var relevantLineIndices = new ArrayList<Integer>();
-
-    // Filter to lines containing unrated letters
-    for (int i = 0; i < Board.SIZE * 2; i++) {
-      for (int j = 0; j < Board.SIZE; j++) {
-        if (!alreadyRatedLines[i][j] && lines.get(i).charAt(j) != ' ') {
-          relevantLineIndices.add(i);
-          break;
+      // Create each column containing the new word
+      for (int i = word.x; i < word.x + word.length; i++) {
+        if (board[word.y][i] != ' ') {
+          // If there is already a tile here, do not rate this column
+          continue;
         }
+        char[] col = new char[Board.SIZE];
+        boolean[] alreadyRatedCol = new boolean[Board.SIZE];
+        for (int j = 0; j < Board.SIZE; j++) { // Clone the column
+          col[j] = board[j][i];
+          alreadyRatedCol[j] = occupiedTiles[j][i];
+        }
+        if ((word.y <= 0 || col[word.y - 1] == ' ')
+            && (word.y + 1 >= col.length || col[word.y + 1] == ' ')) {
+          // If this letter is connected to anything then skip since there is no word to rate
+          continue;
+        }
+        col[word.y] = word.string.charAt(i - word.x); // Place the tile
+        lines.add(new LineData(col, alreadyRatedCol, false, i));
+      }
+    } else {
+      char[] col = new char[Board.SIZE];
+      boolean[] alreadyRatedCol = new boolean[Board.SIZE];
+      for (int i = 0; i < Board.SIZE; i++) { // Clone the column
+        col[i] = board[i][word.x];
+        alreadyRatedCol[i] = occupiedTiles[i][word.x];
+      }
+      for (int i = 0; i < word.length; i++) {
+        col[word.y + i] = word.string.charAt(i); // Place the tiles
+      }
+      lines.add(new LineData(col, alreadyRatedCol, true, word.y));
+
+      // Create each row containing the new word
+      for (int i = word.y; i < word.y + word.length; i++) {
+        if (board[i][word.x] != ' ') {
+          // If there is already a tile here, do not rate this column
+          continue;
+        }
+        char[] row = board[i].clone();
+        if ((word.x <= 0 || row[word.x - 1] == ' ')
+            && (word.x + 1 >= row.length || row[word.x + 1] == ' ')) {
+          // If this letter is connected to anything then skip since there is no word to rate
+          continue;
+        }
+        row[word.x] = word.string.charAt(i - word.y); // Place the tile
+        lines.add(new LineData(row, occupiedTiles[i], false, i));
       }
     }
 
-    for (int i : relevantLineIndices) { // Main loop to go through and add ratings
+    int rating = 0;
+    for (LineData line : lines) { // Main loop to go through and add ratings
       // Find an index which is inside the word we need to rate by scanning through the line,
       // and choosing the first unrated letter
       OptionalInt found = OptionalInt.empty();
       for (int j = 0; j < Board.SIZE; j++) {
-        if (!alreadyRatedLines[i][j] && lines.get(i).charAt(j) != ' ') {
+        if (!line.alreadyRated[j] && line.line[j] != ' ') {
           found = OptionalInt.of(j);
           break;
         }
@@ -129,32 +184,35 @@ public class Rater {
 
       // Move backwards to find the index of start of the word (inclusive)
       int k = indexInWord - 1;
-      while (k >= 0 && k < Board.SIZE && lines.get(i).charAt(k) != ' ') {
+      while (k >= 0 && k < Board.SIZE && line.line[k] != ' ') {
         k--;
       }
       k++;
 
       // Move forwards to find the index of end of the word (exclusive)
       int l = indexInWord + 1;
-      while (l >= 0 && l < Board.SIZE && lines.get(i).charAt(l) != ' ') {
+      while (l >= 0 && l < Board.SIZE && line.line[l] != ' ') {
         l++;
       }
 
       // Generate the letters along the correct axis
       var letters = new ArrayList<Letter>();
       for (int m = k; m < l; m++) {
-        if (i < Board.SIZE) { // Horizontal
-          letters.add(new Letter(lines.get(i).charAt(m), m, i, !alreadyRatedLines[i][m]));
-        } else { // Vertical
-          letters.add(
-              new Letter(lines.get(i).charAt(m), i - Board.SIZE, m, !alreadyRatedLines[i][m]));
+        if (word.isHorizontal) {
+          if (line.containsEntireWord) {
+            letters.add(new Letter(line.line[m], m, word.y, !line.alreadyRated[m]));
+          } else {
+            letters.add(new Letter(line.line[m], line.letterIndex, m, !line.alreadyRated[m]));
+          }
+        } else {
+          if (line.containsEntireWord) {
+            letters.add(new Letter(line.line[m], word.x, m, !line.alreadyRated[m]));
+          } else {
+            letters.add(new Letter(line.line[m], m, line.letterIndex, !line.alreadyRated[m]));
+          }
         }
       }
-
-      // Do not rate 1 letter non-words
-      if (letters.size() > 1) {
-        rating += rateWord(letters);
-      }
+      rating += rateWord(letters);
     }
 
     return rating;

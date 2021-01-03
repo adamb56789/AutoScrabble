@@ -10,6 +10,7 @@ public class LocatedWord extends BlankRequiredWord {
   public final int x;
   public final int y;
   public final Direction direction;
+  public final boolean isHorizontal;
 
   public LocatedWord(Word1D word, int x, int y, Direction direction) {
     this(word.string, x, y, direction, word.blankRequirements, word.blanksNeeded);
@@ -26,20 +27,10 @@ public class LocatedWord extends BlankRequiredWord {
     this.x = x;
     this.y = y;
     this.direction = direction;
-  }
-
-  @Override
-  public String toString() {
-    return String.format(
-        "LocatedWord{x=%d, y=%d, direction=%s, blankRequirements=%s, string='%s'}",
-        x, y, direction, Arrays.toString(blankRequirements), string);
+    isHorizontal = direction == Direction.HORIZONTAL;
   }
 
   public RatedWord getRatedWord(Rater rater) {
     return new RatedWord(string, x, y, direction, rater.rate(this));
-  }
-
-  public boolean isHorizontal() {
-    return direction == Direction.HORIZONTAL;
   }
 }

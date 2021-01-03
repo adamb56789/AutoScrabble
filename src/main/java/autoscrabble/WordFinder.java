@@ -39,6 +39,7 @@ public class WordFinder {
     var rackMask = DictEntry.createAlphabetMask(String.valueOf(rack));
     var lineMask = DictEntry.createAlphabetMask(line.toUpperCase());
     return dictionary.stream()
+//        .parallel()
         // Preliminarily filtering out words that will always fail to save time ~25x speedup
         .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask))
         // Get all words that could fit on the given line
