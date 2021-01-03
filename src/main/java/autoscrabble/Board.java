@@ -168,51 +168,55 @@ public class Board {
       LocatedWord lWord;
       boolean[] letterAlreadyPlaced = new boolean[word.length];
       int[] letterMultiplier = new int[word.length];
+      char[] wordArr = word.string.toCharArray();
       if (direction == Direction.HORIZONTAL) {
         lWord = new LocatedWord(word, word.startIndex, index, direction);
         for (int i = lWord.x; i < lWord.x + word.length; i++) {
-          letterAlreadyPlaced[i - lWord.x] = occupiedTiles[lWord.y][i];
+          if (occupiedTiles[lWord.y][i]) {
+            letterAlreadyPlaced[i - lWord.x] = occupiedTiles[lWord.y][i];
+            wordArr[i - lWord.x] = line.charAt(i);
+          }
           letterMultiplier[i - lWord.x] = Rater.BONUSES[lWord.y][i];
         }
       } else { // Vertical
         lWord = new LocatedWord(word, index, word.startIndex, direction);
         for (int i = lWord.y; i < lWord.y + word.length; i++) {
-          letterAlreadyPlaced[i - lWord.y] = occupiedTiles[i][lWord.x];
+          if (occupiedTiles[i][lWord.x]) {
+            letterAlreadyPlaced[i - lWord.y] = true;
+            wordArr[i - lWord.y] = line.charAt(i);
+          }
           letterMultiplier[i - lWord.y] = Rater.BONUSES[i][lWord.x];
         }
       }
 
-      // Blanks already on the board need to appear in the word
-      char[] wordArr = lWord.string.toCharArray();
-      for (int i = 0; i < lWord.length; i++) {
-        if (letterAlreadyPlaced[i]) {
-          wordArr[i] = line.charAt(i + word.startIndex);
-        }
-      }
-
       if (word.blanksNeeded) {
-        // If there are blanks, put the blanks in the optimal position to avoid letter multipliers
-        for (int i = 0; i < word.blankRequirements.length; i++) {
-          var blankIndexList = new ArrayList<Integer>();
-          for (int j = 0; j < word.length; j++) {
-            // If a blank is required for this letter
-            int charI = word.string.charAt(j) - 65;
-            if (i == charI && !letterAlreadyPlaced[j] && word.blankRequirements[charI] > 0) {
-              blankIndexList.add(j);
-            }
-          }
-          // Sort in ascending order by the letter multiplier at that location
-          blankIndexList.sort(Comparator.comparingInt(j -> letterMultiplier[j]));
-          // Set the characters in the word to be blank-using
-          for (int j = 0; j < word.blankRequirements[i]; j++) {
-            wordArr[blankIndexList.get(j)] = Character.toLowerCase(wordArr[blankIndexList.get(j)]);
-          }
-        }
+        positionBlank(word, letterAlreadyPlaced, letterMultiplier, wordArr);
       }
       lWord.string = String.valueOf(wordArr);
       ratedWords.add((lWord.getRatedWord(rater)));
     }
     return ratedWords;
+  }
+
+  private void positionBlank(
+      Word1D word, boolean[] letterAlreadyPlaced, int[] letterMultiplier, char[] wordArr) {
+    // If there are blanks, put the blanks in the optimal position to avoid letter multipliers
+    for (int i = 0; i < word.blankRequirements.length; i++) {
+      var blankIndexList = new ArrayList<Integer>();
+      for (int j = 0; j < word.length; j++) {
+        // If a blank is required for this letter
+        int charI = word.string.charAt(j) - 65;
+        if (i == charI && !letterAlreadyPlaced[j] && word.blankRequirements[charI] > 0) {
+          blankIndexList.add(j);
+        }
+      }
+      // Sort in ascending order by the letter multiplier at that location
+      blankIndexList.sort(Comparator.comparingInt(j -> letterMultiplier[j]));
+      // Set the characters in the word to be blank-using
+      for (int j = 0; j < word.blankRequirements[i]; j++) {
+        wordArr[blankIndexList.get(j)] = Character.toLowerCase(wordArr[blankIndexList.get(j)]);
+      }
+    }
   }
 
   public RatedWord findBestWord() {
@@ -229,7 +233,7 @@ public class Board {
     // Merge lists
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-            .parallel() // I am speed
+            //            .parallel() // I am speed
             .mapToObj(
                 i -> {
                   // Get the row index if horizontal or col index if vertical, and the direction

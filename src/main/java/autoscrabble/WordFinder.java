@@ -44,13 +44,14 @@ public class WordFinder {
         // Get all words that could fit on the given line
         .map(entry -> getWordsFitInLine(line, entry.getWord(), line.toUpperCase()))
         .flatMap(List::stream) // Merge words from each line
-        .filter(word -> endsNotBlocked(word, line))
+        // Check that the word is not directly touching another
+        .filter(word -> endsAreFree(word, line))
         // Filter to words that can be placed with available tiles
         .filter(word -> rackHasEnoughLetters(word, line, getLetterFrequency(rack), blankCount))
         .collect(Collectors.toList());
   }
 
-  private boolean endsNotBlocked(Word1D word, String line) {
+  private boolean endsAreFree(Word1D word, String line) {
     return (word.startIndex == 0 || line.charAt(word.startIndex - 1) == ' ')
         && (word.startIndex + word.length == line.length()
             || line.charAt(word.startIndex + word.length) == ' ');
@@ -123,8 +124,8 @@ public class WordFinder {
         } else {
           remainingLetters[i] = 0;
         }
-        word.setBlankRequirements(remainingLetters);
       }
+      word.setBlankRequirements(remainingLetters);
     }
     return validWord;
   }
