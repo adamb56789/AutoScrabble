@@ -2,7 +2,6 @@ package autoscrabble;
 
 import autoscrabble.word.LocatedWord;
 import autoscrabble.word.RatedWord;
-import autoscrabble.word.Word1D;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -62,7 +61,7 @@ public class Board {
    * @param board the board
    * @return a list of Strings
    */
-  public static List<String> getLines(char[][] board) {
+  public List<String> getLines(char[][] board) {
     // Rows
     var lines = Arrays.stream(board).map(String::valueOf).collect(Collectors.toList());
 
@@ -75,17 +74,6 @@ public class Board {
       lines.add(String.valueOf(col));
     }
     return lines;
-  }
-
-  /** Place the given word on the given board. */
-  public static void placeWord(LocatedWord word, char[][] board) {
-    for (int i = 0; i < word.string.length(); i++) {
-      if (word.isHorizontal) {
-        board[word.y][word.x + i] = word.string.charAt(i);
-      } else {
-        board[word.y + i][word.x] = word.string.charAt(i);
-      }
-    }
   }
 
   /** Make a move by placing a word on the board and removing tiles from the rack. */
@@ -111,16 +99,47 @@ public class Board {
     }
   }
 
-  public boolean boardIsValid(LocatedWord move) {
-    char[][] boardCopy = Arrays.stream(board).map(char[]::clone).toArray(char[][]::new);
+  public boolean moveIsValid(LocatedWord word) {
+    var lines = new ArrayList<String>();
+    if (word.isHorizontal) {
+      char[] row = board[word.y].clone(); // Clone the row
+      for (int i = 0; i < word.length; i++) {
+        row[word.x + i] = word.string.charAt(i); // Place the tiles
+      }
+      lines.add(String.valueOf(row));
 
-    // Place the word if there is one
-    if (move != null) {
-      placeWord(move, boardCopy);
+      // Create each column containing the new word
+      for (int i = word.x; i < word.x + word.length; i++) {
+        char[] col = new char[Board.SIZE];
+        for (int j = 0; j < Board.SIZE; j++) { // Clone the column
+          col[j] = board[j][i];
+        }
+        col[word.y] = word.string.charAt(i - word.x); // Place the tile
+        lines.add(String.valueOf(col));
+      }
+    } else {
+      char[] col = new char[Board.SIZE];
+      for (int i = 0; i < Board.SIZE; i++) { // Clone the column
+        col[i] = board[i][word.x];
+      }
+      for (int i = 0; i < word.length; i++) {
+        col[word.y + i] = word.string.charAt(i); // Place the tiles
+      }
+      lines.add(String.valueOf(col));
+
+      // Create each row containing the new word
+      for (int i = word.y; i < word.y + word.length; i++) {
+        char[] row = board[i].clone();
+        row[word.x] = word.string.charAt(i - word.y); // Place the tile
+        lines.add(String.valueOf(row));
+      }
     }
 
-    return getLines(boardCopy) // Get all horizontal and vertical lines
-        .stream()
+    return linesAreValid(lines);
+  }
+
+  public boolean linesAreValid(List<String> lines) {
+    return lines.stream()
         .map(arr -> arr.split(" +")) // Split each line around spaces
         .flatMap(Arrays::stream) // Merge the result
         .filter(w -> w.length() > 1) // Filter out blank or 1 letter words
@@ -145,7 +164,7 @@ public class Board {
     long startTime = System.currentTimeMillis();
 
     // If the board is invalid display an error
-    if (!boardIsValid(null)) {
+    if (!linesAreValid(getLines(board))) {
       userMessage = "Current board not valid";
       return null;
     }
@@ -153,7 +172,7 @@ public class Board {
     // Find all possible words that fit in the line
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-                .parallel()
+            .parallel()
             .mapToObj(
                 i -> {
                   // Get the row index if horizontal or col index if vertical, and the direction
@@ -171,7 +190,7 @@ public class Board {
     // Get the first one that is valid
     RatedWord bestWord = null;
     for (var word : words) {
-      if (boardIsValid(word)) {
+      if (moveIsValid(word)) {
         bestWord = word;
         userMessage =
             String.format(
