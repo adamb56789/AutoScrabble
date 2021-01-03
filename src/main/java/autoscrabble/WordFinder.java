@@ -1,11 +1,9 @@
 package autoscrabble;
 
+import autoscrabble.word.LocatedWord;
 import autoscrabble.word.Word1D;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class WordFinder {
@@ -32,14 +30,16 @@ public class WordFinder {
     return rackLetterFrequency;
   }
 
-  public List<Word1D> getWords(String line, char[] rack) {
+  public List<LocatedWord> getWords(
+      Board board, String line, char[] rack, Direction direction, int index) {
     int blankCount = (int) String.valueOf(rack).chars().filter(c -> c == '_').count();
+    var occupiedTiles = board.getOccupiedTiles();
     // Counting max possible length of words, possible future sorting???
 
     var rackMask = DictEntry.createAlphabetMask(String.valueOf(rack));
     var lineMask = DictEntry.createAlphabetMask(line.toUpperCase());
     return dictionary.stream()
-//        .parallel()
+        .parallel()
         // Preliminarily filtering out words that will always fail to save time ~25x speedup
         .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask))
         // Get all words that could fit on the given line
@@ -49,7 +49,71 @@ public class WordFinder {
         .filter(word -> endsAreFree(word, line))
         // Filter to words that can be placed with available tiles
         .filter(word -> rackHasEnoughLetters(word, line, getLetterFrequency(rack), blankCount))
+        // Add blanks from the line/rack and position the word on the board
+        .map(word -> situateAndAddBlanks(line, direction, index, occupiedTiles, word))
         .collect(Collectors.toList());
+  }
+
+  private LocatedWord situateAndAddBlanks(
+      String line, Direction direction, int index, boolean[][] occupiedTiles, Word1D word) {
+
+    LocatedWord lWord;
+    boolean lineContainsBlank = line.indexOf(' ') != -1;
+    if (lineContainsBlank || word.blanksNeeded) {
+      // If there any blanks involved we must copy any existing board tiles to the word to catch
+      // any blanks on the board, and position the blank tile(s) from the rack
+      boolean[] letterAlreadyPlaced = new boolean[word.length];
+      int[] letterMultiplier = new int[word.length];
+      char[] wordArr = word.string.toCharArray();
+
+      if (direction == Direction.HORIZONTAL) {
+        lWord = new LocatedWord(word, word.startIndex, index, direction);
+        for (int i = lWord.x; i < lWord.x + word.length; i++) {
+          if (occupiedTiles[lWord.y][i]) {
+            letterAlreadyPlaced[i - lWord.x] = occupiedTiles[lWord.y][i];
+            wordArr[i - lWord.x] = line.charAt(i);
+          }
+          letterMultiplier[i - lWord.x] = Rater.LETTER_BONUSES[lWord.y][i];
+        }
+      } else { // Vertical
+        lWord = new LocatedWord(word, index, word.startIndex, direction);
+        for (int i = lWord.y; i < lWord.y + word.length; i++) {
+          if (occupiedTiles[i][lWord.x]) {
+            letterAlreadyPlaced[i - lWord.y] = true;
+            wordArr[i - lWord.y] = line.charAt(i);
+          }
+          letterMultiplier[i - lWord.y] = Rater.LETTER_BONUSES[i][lWord.x];
+        }
+      }
+
+      if (word.blanksNeeded) {
+        // If there are blanks, put the blanks in the optimal position to avoid letter multipliers
+        for (int i = 0; i < word.blankRequirements.length; i++) {
+          var blankIndexList = new ArrayList<Integer>();
+          for (int j = 0; j < word.length; j++) {
+            // If a blank is required for this letter
+            int charI = word.string.charAt(j) - 65;
+            if (i == charI && !letterAlreadyPlaced[j] && word.blankRequirements[charI] > 0) {
+              blankIndexList.add(j);
+            }
+          }
+          // Sort in ascending order by the letter multiplier at that location
+          blankIndexList.sort(Comparator.comparingInt(j -> letterMultiplier[j]));
+          // Set the characters in the word to be blank-using
+          for (int j = 0; j < word.blankRequirements[i]; j++) {
+            wordArr[blankIndexList.get(j)] = Character.toLowerCase(wordArr[blankIndexList.get(j)]);
+          }
+        }
+      }
+      lWord.string = String.valueOf(wordArr);
+    } else {
+      if (direction == Direction.HORIZONTAL) {
+        lWord = new LocatedWord(word, word.startIndex, index, direction);
+      } else {
+        lWord = new LocatedWord(word, index, word.startIndex, direction);
+      }
+    }
+    return lWord;
   }
 
   private boolean endsAreFree(Word1D word, String line) {

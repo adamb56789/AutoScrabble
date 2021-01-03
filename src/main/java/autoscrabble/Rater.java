@@ -5,7 +5,6 @@ import autoscrabble.word.LocatedWord;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.OptionalInt;
 
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
 public class Rater {
@@ -118,7 +117,7 @@ public class Rater {
       for (int i = 0; i < word.length; i++) {
         row[word.x + i] = word.string.charAt(i); // Place the tiles
       }
-      lines.add(new LineData(row, occupiedTiles[word.y], true, word.x));
+      lines.add(new LineData(row, occupiedTiles[word.y], true, word.x, word.x));
 
       // Create each column containing the new word
       for (int i = word.x; i < word.x + word.length; i++) {
@@ -138,7 +137,7 @@ public class Rater {
           continue;
         }
         col[word.y] = word.string.charAt(i - word.x); // Place the tile
-        lines.add(new LineData(col, alreadyRatedCol, false, i));
+        lines.add(new LineData(col, alreadyRatedCol, false, i, word.y));
       }
     } else {
       char[] col = new char[Board.SIZE];
@@ -150,7 +149,7 @@ public class Rater {
       for (int i = 0; i < word.length; i++) {
         col[word.y + i] = word.string.charAt(i); // Place the tiles
       }
-      lines.add(new LineData(col, alreadyRatedCol, true, word.y));
+      lines.add(new LineData(col, alreadyRatedCol, true, word.y, word.y));
 
       // Create each row containing the new word
       for (int i = word.y; i < word.y + word.length; i++) {
@@ -165,32 +164,21 @@ public class Rater {
           continue;
         }
         row[word.x] = word.string.charAt(i - word.y); // Place the tile
-        lines.add(new LineData(row, occupiedTiles[i], false, i));
+        lines.add(new LineData(row, occupiedTiles[i], false, i, word.x));
       }
     }
 
     int rating = 0;
     for (LineData line : lines) { // Main loop to go through and add ratings
-      // Find an index which is inside the word we need to rate by scanning through the line,
-      // and choosing the first unrated letter
-      OptionalInt found = OptionalInt.empty();
-      for (int j = 0; j < Board.SIZE; j++) {
-        if (!line.alreadyRated[j] && line.line[j] != ' ') {
-          found = OptionalInt.of(j);
-          break;
-        }
-      }
-      int indexInWord = found.orElseThrow();
-
       // Move backwards to find the index of start of the word (inclusive)
-      int k = indexInWord - 1;
+      int k = line.firstPlacedTileIndex - 1;
       while (k >= 0 && k < Board.SIZE && line.line[k] != ' ') {
         k--;
       }
       k++;
 
       // Move forwards to find the index of end of the word (exclusive)
-      int l = indexInWord + 1;
+      int l = line.firstPlacedTileIndex + 1;
       while (l >= 0 && l < Board.SIZE && line.line[l] != ' ') {
         l++;
       }

@@ -1,24 +1,22 @@
 package autoscrabble;
 
-import java.util.Arrays;
-
 public class LineData {
-  public char[] line;
-  public boolean[] alreadyRated;
-  public boolean containsEntireWord;
-  public int letterIndex;
+  public final char[] line;
+  public final boolean[] alreadyRated;
+  public final boolean containsEntireWord;
+  public final int letterIndex;
+  public final int firstPlacedTileIndex;
 
-  @Override
-  public String toString() {
-    return "LineData{" +
-            "line=" + Arrays.toString(line) +
-            '}';
-  }
-
-  public LineData(char[] line, boolean[] alreadyRated, boolean containsEntireWord, int letterIndex) {
+  public LineData(
+      char[] line,
+      boolean[] alreadyRated,
+      boolean containsEntireWord,
+      int letterIndex,
+      int firstPlacedTileIndex) {
     this.line = line;
     this.alreadyRated = alreadyRated;
     this.containsEntireWord = containsEntireWord;
     this.letterIndex = letterIndex;
+    this.firstPlacedTileIndex = firstPlacedTileIndex;
   }
 }
