@@ -35,6 +35,24 @@ public class App {
     gbc.anchor = GridBagConstraints.NORTH;
     panel.add(rack, gbc);
 
+    var resetButton = new JButton();
+    resetButton.setText("Reset");
+    resetButton.addActionListener(
+        new AbstractAction() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            System.out.println("Reset");
+            board.reset();
+            panel.repaint();
+          }
+        });
+    gbc = new GridBagConstraints();
+    gbc.gridx = 1;
+    gbc.gridy = 1;
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    gbc.anchor = GridBagConstraints.SOUTH;
+    panel.add(resetButton, gbc);
+
     var autoButton = new JButton();
     autoButton.setText("Auto");
     autoButton.addActionListener(
@@ -46,7 +64,7 @@ public class App {
         });
     gbc = new GridBagConstraints();
     gbc.gridx = 1;
-    gbc.gridy = 1;
+    gbc.gridy = 2;
     gbc.fill = GridBagConstraints.HORIZONTAL;
     gbc.anchor = GridBagConstraints.SOUTH;
     panel.add(autoButton, gbc);

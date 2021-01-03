@@ -252,4 +252,15 @@ public class Board {
   public String getUserMessage() {
     return userMessage;
   }
+
+  public void reset() {
+    for (var row : board) {
+      Arrays.fill(row, ' ');
+    }
+    for (var row : occupiedTiles) {
+      Arrays.fill(row, false);
+    }
+    Arrays.fill(rack, ' ');
+    gameStarted = false;
+  }
 }
