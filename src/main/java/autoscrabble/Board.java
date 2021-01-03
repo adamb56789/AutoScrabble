@@ -162,35 +162,47 @@ public class Board {
     List<Word1D> words = wordFinder.getWords(line, rack);
 
     var locatedWords = new ArrayList<LocatedWord>();
+    boolean lineContainsBlank = line.indexOf(' ') != -1;
     for (var word : words) {
       LocatedWord lWord;
-      boolean[] letterAlreadyPlaced = new boolean[word.length];
-      int[] letterMultiplier = new int[word.length];
-      char[] wordArr = word.string.toCharArray();
-      if (direction == Direction.HORIZONTAL) {
-        lWord = new LocatedWord(word, word.startIndex, index, direction);
-        for (int i = lWord.x; i < lWord.x + word.length; i++) {
-          if (occupiedTiles[lWord.y][i]) {
-            letterAlreadyPlaced[i - lWord.x] = occupiedTiles[lWord.y][i];
-            wordArr[i - lWord.x] = line.charAt(i);
-          }
-          letterMultiplier[i - lWord.x] = Rater.LETTER_BONUSES[lWord.y][i];
-        }
-      } else { // Vertical
-        lWord = new LocatedWord(word, index, word.startIndex, direction);
-        for (int i = lWord.y; i < lWord.y + word.length; i++) {
-          if (occupiedTiles[i][lWord.x]) {
-            letterAlreadyPlaced[i - lWord.y] = true;
-            wordArr[i - lWord.y] = line.charAt(i);
-          }
-          letterMultiplier[i - lWord.y] = Rater.LETTER_BONUSES[i][lWord.x];
-        }
-      }
+      if (lineContainsBlank || word.blanksNeeded) {
+        // If there any blanks involved we must copy any existing board tiles to the word to catch
+        // any blanks on the board, and position the blank tile(s) from the rack
+        boolean[] letterAlreadyPlaced = new boolean[word.length];
+        int[] letterMultiplier = new int[word.length];
+        char[] wordArr = word.string.toCharArray();
 
-      if (word.blanksNeeded) {
-        positionBlank(word, letterAlreadyPlaced, letterMultiplier, wordArr);
+        if (direction == Direction.HORIZONTAL) {
+          lWord = new LocatedWord(word, word.startIndex, index, direction);
+          for (int i = lWord.x; i < lWord.x + word.length; i++) {
+            if (occupiedTiles[lWord.y][i]) {
+              letterAlreadyPlaced[i - lWord.x] = occupiedTiles[lWord.y][i];
+              wordArr[i - lWord.x] = line.charAt(i);
+            }
+            letterMultiplier[i - lWord.x] = Rater.LETTER_BONUSES[lWord.y][i];
+          }
+        } else { // Vertical
+          lWord = new LocatedWord(word, index, word.startIndex, direction);
+          for (int i = lWord.y; i < lWord.y + word.length; i++) {
+            if (occupiedTiles[i][lWord.x]) {
+              letterAlreadyPlaced[i - lWord.y] = true;
+              wordArr[i - lWord.y] = line.charAt(i);
+            }
+            letterMultiplier[i - lWord.y] = Rater.LETTER_BONUSES[i][lWord.x];
+          }
+        }
+
+        if (word.blanksNeeded) {
+          positionBlank(word, letterAlreadyPlaced, letterMultiplier, wordArr);
+        }
+        lWord.string = String.valueOf(wordArr);
+      } else {
+        if (direction == Direction.HORIZONTAL) {
+          lWord = new LocatedWord(word, word.startIndex, index, direction);
+        } else {
+          lWord = new LocatedWord(word, index, word.startIndex, direction);
+        }
       }
-      lWord.string = String.valueOf(wordArr);
       locatedWords.add(lWord);
     }
     return locatedWords;
