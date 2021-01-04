@@ -16,7 +16,7 @@ public class RackComp extends JComponent {
   private static final String MOVE_UP = "move up";
   private static final String MOVE_DOWN = "move down";
   private final Board board;
-  private int rackSelection = -1;
+  private int rackSelection = 0;
 
   public RackComp(Board board) {
     this.board = board;
@@ -27,8 +27,6 @@ public class RackComp extends JComponent {
     addMouseListener(new SelectTileMouseListener());
     addKeyListener(new LetterKeyListener());
 
-    setFocusable(true);
-
     getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("UP"), MOVE_UP);
     getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("LEFT"), MOVE_UP);
     getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("DOWN"), MOVE_DOWN);
@@ -36,6 +34,15 @@ public class RackComp extends JComponent {
 
     getActionMap().put(MOVE_UP, new MoveAction(-1));
     getActionMap().put(MOVE_DOWN, new MoveAction(1));
+
+    addFocusListener(
+        new FocusAdapter() {
+          @Override
+          public void focusGained(FocusEvent e) {
+            // Repaint on focus to update selection boxes
+            getParent().repaint();
+          }
+        });
   }
 
   @Override
@@ -78,11 +85,10 @@ public class RackComp extends JComponent {
   private class SelectTileMouseListener extends MouseAdapter {
     @Override
     public void mousePressed(MouseEvent e) {
-      requestFocus(); // Get focus for typing
+      requestFocus(); // Focus on click
       rackSelection =
           (e.getY() + RACK_TILE_SPACING / 2) / (BoardComp.SQUARE_SIZE + RACK_TILE_SPACING);
-
-      getParent().repaint(); // Repaint the rack to clear selection box
+      getParent().repaint(); // Repaint to update selection boxes
     }
   }
 

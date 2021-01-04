@@ -14,31 +14,17 @@ import java.util.stream.IntStream;
 public class Board {
   public static final int SIZE = 15;
   public static final int RACK_CAPACITY = 7;
-  private final char[] rack = "ABCDEFG".toCharArray();
+  private final char[] rack = new char[RACK_CAPACITY];
   private final WordFinder wordFinder;
-  private final char[][] board = {
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-    {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}
-  };
+  private final char[][] board = new char[SIZE][SIZE];
   private final boolean[][] occupiedTiles = new boolean[board.length][board.length];
   private boolean userInterrupt;
   private String userMessage = "";
   private boolean gameStarted = false;
 
   public Board() {
+    initialise();
+    // Load the dictionary and prepare the word finder
     var inputStream = getClass().getClassLoader().getResourceAsStream("Dictionary.txt");
     assert inputStream != null;
     var streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
@@ -253,7 +239,7 @@ public class Board {
     return userMessage;
   }
 
-  public void reset() {
+  public void initialise() {
     for (var row : board) {
       Arrays.fill(row, ' ');
     }

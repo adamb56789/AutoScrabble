@@ -48,14 +48,12 @@ public class BoardComp extends JComponent {
   private static Image doubleLetterImage;
   private static Image startImage;
   private final Board board;
-  private final RackComp rack;
-  private int xSelection = -1;
-  private int ySelection = -1;
+  private int xSelection = 0;
+  private int ySelection = 0;
 
-  public BoardComp(Board board, RackComp rack) {
+  public BoardComp(Board board) {
     super();
     this.board = board;
-    this.rack = rack;
     // Load images
     try {
       tripleWordImage = ImageIO.read(getClass().getResource("/images/tripleWord.png"));
@@ -69,7 +67,8 @@ public class BoardComp extends JComponent {
     }
 
     // Set up this component
-    var dimension = new Dimension(BOARD_SIZE + BOARD_RIGHT_SPACING, BOARD_SIZE + MESSAGE_Y_OFFSET + 10);
+    var dimension =
+        new Dimension(BOARD_SIZE + BOARD_RIGHT_SPACING, BOARD_SIZE + MESSAGE_Y_OFFSET + 10);
     setMinimumSize(dimension);
     setPreferredSize(dimension);
     setFocusable(true);
@@ -93,6 +92,15 @@ public class BoardComp extends JComponent {
     getActionMap().put(MOVE_RIGHT, new MoveAction(1, 0));
     getActionMap().put(FIND_WORD, new FindWordAction());
     getActionMap().put(USER_INTERRUPT, new UserInterruptAction());
+
+    addFocusListener(
+        new FocusAdapter() {
+          @Override
+          public void focusGained(FocusEvent e) {
+            // Repaint on focus to update selection boxes
+            getParent().repaint();
+          }
+        });
   }
 
   @Override
@@ -194,10 +202,16 @@ public class BoardComp extends JComponent {
   private class FindWordAction extends AbstractAction {
     @Override
     public void actionPerformed(ActionEvent e) {
-      setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      board.findBestWord();
-      setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-      repaint();
+      getParent().setCursor(new Cursor(Cursor.WAIT_CURSOR));
+      var word = board.findBestWord();
+      if (word != null) {
+        requestFocus(); // Get focus to display word start location
+        board.makeMove(word);
+        xSelection = word.x;
+        ySelection = word.y;
+      }
+      getParent().setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+      getParent().repaint();
     }
   }
 
@@ -234,10 +248,7 @@ public class BoardComp extends JComponent {
   private class SelectTileMouseListener extends MouseAdapter {
     @Override
     public void mousePressed(MouseEvent e) {
-      requestFocus(); // Get focus for typing
-      // Remove the previous selection
-      xSelection = -1;
-      ySelection = -1;
+      requestFocus(); // Focus on click
 
       int x = e.getX();
       int y = e.getY();
@@ -260,8 +271,7 @@ public class BoardComp extends JComponent {
           }
         }
       }
-      repaint();
-      rack.repaint(); // Repaint the rack to clear selection box
+      getParent().repaint(); // Repaint to update selection boxes
     }
   }
 }

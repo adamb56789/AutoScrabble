@@ -11,12 +11,12 @@ import java.util.Random;
 
 public class App {
   public static final Color BACKGROUND_COLOUR = Color.decode("#F3F3F3");
+  public static final String SWAP_FOCUS = "swap focus";
   static Random random = new Random(0);
   private static Board board;
 
   public static void main(String[] args) {
     board = new Board();
-    RackComp rack = new RackComp(board);
 
     JPanel panel = new JPanel();
     panel.setLayout(new GridBagLayout());
@@ -25,7 +25,8 @@ public class App {
     gbc.gridx = 0;
     gbc.gridy = 0;
     gbc.fill = GridBagConstraints.HORIZONTAL;
-    panel.add(new BoardComp(board, rack), gbc);
+    var boardComp = new BoardComp(board);
+    panel.add(boardComp, gbc);
 
     gbc = new GridBagConstraints();
     gbc.gridx = 1;
@@ -33,16 +34,18 @@ public class App {
     gbc.fill = GridBagConstraints.HORIZONTAL;
     gbc.insets = new Insets(16, 0, 0, 0);
     gbc.anchor = GridBagConstraints.NORTH;
-    panel.add(rack, gbc);
+    var rackComp = new RackComp(board);
+    panel.add(rackComp, gbc);
 
     var resetButton = new JButton();
+    resetButton.setFocusable(false);
     resetButton.setText("Reset");
     resetButton.addActionListener(
         new AbstractAction() {
           @Override
           public void actionPerformed(ActionEvent e) {
             System.out.println("Reset");
-            board.reset();
+            board.initialise();
             panel.repaint();
           }
         });
@@ -54,6 +57,7 @@ public class App {
     panel.add(resetButton, gbc);
 
     var autoButton = new JButton();
+    autoButton.setFocusable(false);
     autoButton.setText("Auto");
     autoButton.addActionListener(
         new AbstractAction() {
@@ -74,6 +78,7 @@ public class App {
     var frame = new JFrame();
     frame.add(scrollPane);
     frame.pack();
+    rackComp.requestFocus(); // Start focus on the rack
     frame.setLocationRelativeTo(null);
     frame.setTitle("AutoScrabble");
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
