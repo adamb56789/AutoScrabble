@@ -16,7 +16,7 @@ public class RackComp extends JComponent {
   private static final String MOVE_UP = "move up";
   private static final String MOVE_DOWN = "move down";
   private final Board board;
-  private int rackSelection = 0;
+  private int selection = 0;
 
   public RackComp(Board board) {
     this.board = board;
@@ -39,6 +39,7 @@ public class RackComp extends JComponent {
         new FocusAdapter() {
           @Override
           public void focusGained(FocusEvent e) {
+            selection = 0;
             // Repaint on focus to update selection boxes
             getParent().repaint();
           }
@@ -62,10 +63,14 @@ public class RackComp extends JComponent {
     }
 
     // Draw the selection if in focus
-    if (rackSelection != -1 && isFocusOwner()) {
-      int tileY = RACK_TILE_SPACING + rackSelection * (BoardComp.SQUARE_SIZE + RACK_TILE_SPACING);
+    if (selection != -1 && isFocusOwner()) {
+      int tileY = RACK_TILE_SPACING + selection * (BoardComp.SQUARE_SIZE + RACK_TILE_SPACING);
       Tile.drawSelectionBox((Graphics2D) g, RACK_TILE_SPACING, tileY);
     }
+  }
+
+  private void moveSelectionBy(int i) {
+    selection = Math.floorMod(selection + i, Board.RACK_CAPACITY);
   }
 
   private class MoveAction extends AbstractAction {
@@ -77,7 +82,7 @@ public class RackComp extends JComponent {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-      rackSelection = Math.floorMod(rackSelection + x, Board.RACK_CAPACITY);
+      moveSelectionBy(x);
       repaint();
     }
   }
@@ -86,8 +91,7 @@ public class RackComp extends JComponent {
     @Override
     public void mousePressed(MouseEvent e) {
       requestFocus(); // Focus on click
-      rackSelection =
-          (e.getY() + RACK_TILE_SPACING / 2) / (BoardComp.SQUARE_SIZE + RACK_TILE_SPACING);
+      selection = (e.getY() + RACK_TILE_SPACING / 2) / (BoardComp.SQUARE_SIZE + RACK_TILE_SPACING);
       getParent().repaint(); // Repaint to update selection boxes
     }
   }
@@ -96,12 +100,15 @@ public class RackComp extends JComponent {
     @Override
     public void keyTyped(KeyEvent e) {
       char keyChar = e.getKeyChar();
-      if (Character.isAlphabetic(keyChar)) {
-        board.placeInRack(keyChar, rackSelection);
-      } else if (keyChar == KeyEvent.VK_BACK_SPACE) {
-        board.placeInRack(' ', rackSelection);
+      if (keyChar == KeyEvent.VK_BACK_SPACE) {
+        board.placeInRack(' ', selection);
+        moveSelectionBy(-1);
+      } else if (Character.isAlphabetic(keyChar)) {
+        board.placeInRack(keyChar, selection);
+        moveSelectionBy(1);
       } else if (keyChar == ' ' || keyChar == '-') {
-        board.placeInRack('_', rackSelection);
+        board.placeInRack('_', selection);
+        moveSelectionBy(1);
       }
       repaint();
     }

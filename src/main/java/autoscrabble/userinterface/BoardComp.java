@@ -1,6 +1,7 @@
 package autoscrabble.userinterface;
 
 import autoscrabble.Board;
+import autoscrabble.Direction;
 import autoscrabble.Rater;
 
 import javax.imageio.ImageIO;
@@ -50,6 +51,7 @@ public class BoardComp extends JComponent {
   private final Board board;
   private int xSelection = 0;
   private int ySelection = 0;
+  private Direction typingDirection = null;
 
   public BoardComp(Board board) {
     super();
@@ -209,6 +211,7 @@ public class BoardComp extends JComponent {
         board.makeMove(word);
         xSelection = word.x;
         ySelection = word.y;
+        typingDirection = null;
       }
       getParent().setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
       getParent().repaint();
@@ -228,6 +231,11 @@ public class BoardComp extends JComponent {
     public void actionPerformed(ActionEvent e) {
       xSelection = Math.floorMod(xSelection + x, Board.SIZE);
       ySelection = Math.floorMod(ySelection + y, Board.SIZE);
+      if (x == 0) {
+        typingDirection = Direction.VERTICAL;
+      } else {
+        typingDirection = Direction.HORIZONTAL;
+      }
       repaint();
     }
   }
@@ -237,9 +245,40 @@ public class BoardComp extends JComponent {
     public void keyTyped(KeyEvent e) {
       char keyChar = e.getKeyChar();
       if (Character.isAlphabetic(keyChar)) {
-        board.placeTile(Character.toUpperCase(keyChar), xSelection, ySelection);
+        if (typingDirection == null
+            && board.getBoard()[ySelection][xSelection] != ' '
+            && xSelection < Board.SIZE - 1
+            && board.getBoard()[ySelection][xSelection + 1] == ' ') {
+          typingDirection = Direction.HORIZONTAL;
+        } else if (typingDirection == null
+            && board.getBoard()[ySelection][xSelection] != ' '
+            && ySelection < Board.SIZE - 1
+            && board.getBoard()[ySelection + 1][xSelection] == ' ') {
+          typingDirection = Direction.VERTICAL;
+        }
+
+        boolean placeBeforeMove =
+            board.getBoard()[ySelection][xSelection] == ' '
+                || Character.toUpperCase(board.getBoard()[ySelection][xSelection])
+                    == Character.toUpperCase(keyChar);
+        if (placeBeforeMove) {
+          board.placeTile(Character.toUpperCase(keyChar), xSelection, ySelection);
+        }
+        if (xSelection < Board.SIZE - 1 && typingDirection == Direction.HORIZONTAL) {
+          xSelection++;
+        } else if (ySelection < Board.SIZE - 1 && typingDirection == Direction.VERTICAL) {
+          ySelection++;
+        }
+        if (!placeBeforeMove) {
+          board.placeTile(Character.toUpperCase(keyChar), xSelection, ySelection);
+        }
       } else if (keyChar == KeyEvent.VK_BACK_SPACE) {
         board.placeTile(' ', xSelection, ySelection);
+        if (xSelection > 0 && typingDirection == Direction.HORIZONTAL) {
+          xSelection--;
+        } else if (ySelection > 0 && typingDirection == Direction.VERTICAL) {
+          ySelection--;
+        }
       }
       repaint();
     }
@@ -248,6 +287,7 @@ public class BoardComp extends JComponent {
   private class SelectTileMouseListener extends MouseAdapter {
     @Override
     public void mousePressed(MouseEvent e) {
+      typingDirection = null;
       requestFocus(); // Focus on click
 
       int x = e.getX();

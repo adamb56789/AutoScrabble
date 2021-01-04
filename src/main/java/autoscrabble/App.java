@@ -46,6 +46,7 @@ public class App {
           public void actionPerformed(ActionEvent e) {
             System.out.println("Reset");
             board.initialise();
+            rackComp.requestFocus();
             panel.repaint();
           }
         });
