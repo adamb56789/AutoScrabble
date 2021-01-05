@@ -1,12 +1,9 @@
 package autoscrabble;
 
+import autoscrabble.word.Line;
 import autoscrabble.word.LocatedWord;
 import autoscrabble.word.RatedWord;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -14,32 +11,26 @@ import java.util.stream.IntStream;
 public class Board {
   public static final int SIZE = 15;
   public static final int RACK_CAPACITY = 7;
-  private final char[] rack = new char[RACK_CAPACITY];
   private final WordFinder wordFinder;
   private final char[][] board = new char[SIZE][SIZE];
   private final boolean[][] occupiedTiles = new boolean[board.length][board.length];
+  private char[] rack = new char[RACK_CAPACITY];
   private boolean userInterrupt;
   private String userMessage = "";
   private boolean gameStarted = false;
+  private final Rater rater;
 
-  public Board() {
+  public Board(WordFinder wordFinder) {
     initialise();
-    // Load the dictionary and prepare the word finder
-    var inputStream = getClass().getClassLoader().getResourceAsStream("Dictionary.txt");
-    assert inputStream != null;
-    var streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-    var reader = new BufferedReader(streamReader);
-    var dictionary = new String[] {};
-    try {
-      dictionary = reader.lines().toArray(String[]::new);
-      for (String line; (line = reader.readLine()) != null; ) {
-        System.out.println(line);
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    wordFinder = new WordFinder(dictionary);
-    System.out.println("There are " + dictionary.length + " words in the dictionary.");
+    this.wordFinder = wordFinder;
+    rater = new Rater(this);
+  }
+
+  public Board(WordFinder wordFinder, double[] weights) {
+    initialise();
+    this.wordFinder = wordFinder;
+    rater = new Rater(this);
+    rater.SMART_LETTER_WEIGHTS = weights;
   }
 
   /**
@@ -65,6 +56,33 @@ public class Board {
 
   /** Make a move by placing a word on the board and removing tiles from the rack. */
   public void makeMove(RatedWord word) {
+    int blanksNeeded = word.blanksUsed;
+    int[] lettersNeeded = word.placedLetterFrequency;
+    for (int i = 0; i < rack.length; i++) {
+      int cValue = Character.getNumericValue(rack[i]) - 10;
+      if (cValue >= 0) { // If a letter
+        if (lettersNeeded[cValue] > 0) {
+          rack[i] = ' ';
+          lettersNeeded[cValue]--;
+        }
+      } else if (rack[i] == '_') {
+        if (blanksNeeded > 0) {
+          rack[i] = ' ';
+          blanksNeeded--;
+        }
+      }
+    }
+
+    // Sanity check
+    for (var n : lettersNeeded) {
+      if (n != 0) {
+        System.out.println("Mismatch: " + Arrays.toString(lettersNeeded) + word);
+      }
+    }
+    if (blanksNeeded != 0) {
+      System.out.println("Blank mismatch: " + blanksNeeded + word);
+    }
+
     for (int i = 0; i < word.string.length(); i++) {
       int x, y;
       if (word.isHorizontal) {
@@ -74,14 +92,9 @@ public class Board {
         x = word.x;
         y = word.y + i;
       }
-      board[y][x] = word.string.charAt(i);
-      if (!occupiedTiles[y][x]) {
+      if (board[y][x] == ' ') {
+        board[y][x] = word.string.charAt(i);
         occupiedTiles[y][x] = true;
-        for (int j = 0; j < rack.length; j++) {
-          if (rack[j] == board[y][x] || Character.isLowerCase(board[y][x]) && rack[j] == '_') {
-            rack[j] = ' ';
-          }
-        }
       }
     }
   }
@@ -145,11 +158,10 @@ public class Board {
       userMessage = "Current board not valid";
       return null;
     }
-    var rater = new Rater(this);
     // Find all possible words that fit in the line
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-            .parallel()
+            //            .parallel()
             .mapToObj(
                 i -> {
                   String line = getLines(board).get(i);
@@ -163,7 +175,7 @@ public class Board {
                   Direction direction =
                       i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
                   int index = i < board.length ? i : i - board.length;
-                  return wordFinder.getWords(this, line, rack, direction, index);
+                  return wordFinder.getWords(this, new Line(line, direction, index), rack);
                 })
             .filter(Objects::nonNull) // Remove any lines that were skipped
             .flatMap(List::stream) // Merge lists from each line
@@ -179,7 +191,7 @@ public class Board {
         bestWord = word;
         userMessage =
             String.format(
-                "Found %s at (%c%d) %s, scoring %.0f, ",
+                "Found %s at (%c%d) %s, scoring %s, ",
                 word.string,
                 ((char) (word.x + 97)),
                 (15 - word.y),
@@ -200,7 +212,58 @@ public class Board {
           String.format("%s %d ms", userInterrupt ? "after" : "in", (finishTime - startTime));
       userInterrupt = false;
     }
-    System.out.println(userMessage);
+    gameStarted = true;
+    return bestWord;
+  }
+
+  public RatedWord findBestWordSmart() {
+    // If the board is invalid display an error
+    if (!linesAreValid(getLines(board))) {
+      userMessage = "Current board not valid";
+      return null;
+    }
+    var rater = new Rater(this);
+    // Find all possible words that fit in the line
+    var words =
+        IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
+            //            .parallel()
+            .mapToObj(
+                i -> {
+                  String line = getLines(board).get(i);
+                  // If this is the first move then the line must go through the centre
+                  // If not also skip if the line is blank
+                  if (!gameStarted && i != SIZE / 2 && i != SIZE + SIZE / 2
+                      || gameStarted && line.isBlank()) {
+                    return null;
+                  }
+                  // Get a list of possible words
+                  Direction direction =
+                      i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
+                  int index = i < board.length ? i : i - board.length;
+                  return wordFinder.getWords(this, new Line(line, direction, index), rack);
+                })
+            .filter(Objects::nonNull) // Remove any lines that were skipped
+            .flatMap(List::stream) // Merge lists from each line
+            .filter(this::moveIsValid)
+            .map(word -> word.getRatedWord(rater)) // Rate the words
+            .collect(Collectors.toList());
+
+    if (words.size() == 0) {
+      // Give up immediately with no words found
+      userMessage = "No words found";
+      return null;
+    }
+
+    RatedWord bestWord =
+        words.stream().max(Comparator.comparingDouble(RatedWord::getSmartRating)).orElse(null);
+    userMessage =
+        String.format(
+            "Found %s at (%c%d) %s, scoring %s, ",
+            bestWord.string,
+            ((char) (bestWord.x + 97)),
+            (15 - bestWord.y),
+            bestWord.isHorizontal ? "horizontally" : "vertically",
+            bestWord.getRating());
     gameStarted = true;
     return bestWord;
   }
@@ -227,6 +290,10 @@ public class Board {
     return rack;
   }
 
+  public void setRack(char[] rack) {
+    this.rack = rack;
+  }
+
   public boolean[][] getOccupiedTiles() {
     return occupiedTiles;
   }
@@ -237,6 +304,10 @@ public class Board {
 
   public String getUserMessage() {
     return userMessage;
+  }
+
+  public void setUserMessage(String userMessage) {
+    this.userMessage = userMessage;
   }
 
   public void initialise() {

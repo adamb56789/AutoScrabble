@@ -4,19 +4,26 @@ import autoscrabble.Direction;
 
 /** A word with a rating as well as location and direction. */
 public class RatedWord extends LocatedWord {
-  private final double rating;
+  private final int rating;
+  private final double smartRating;
 
-  public RatedWord(String word, int x, int y, Direction direction, double rating) {
-    super(word, x, y, direction, null, false);
+  public RatedWord(
+      LocatedWord word, int x, int y, Direction direction, int rating, double smartRating) {
+    super(word, x, y, direction);
     this.rating = rating;
+    this.smartRating = smartRating;
   }
 
-  public double getRating() {
+  public double getSmartRating() {
+    return smartRating;
+  }
+
+  public int getRating() {
     return rating;
   }
 
   @Override
   public String toString() {
-    return "RatedWord{" + "rating=" + rating + ", word='" + string + '\'' + '}';
+    return String.format("%s, (%d,%d), %d, %.1f", string, x, y, rating, smartRating);
   }
 }

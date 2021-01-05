@@ -39,7 +39,6 @@ public class RackComp extends JComponent {
         new FocusAdapter() {
           @Override
           public void focusGained(FocusEvent e) {
-            selection = 0;
             // Repaint on focus to update selection boxes
             getParent().repaint();
           }
@@ -48,6 +47,9 @@ public class RackComp extends JComponent {
 
   @Override
   protected void paintComponent(Graphics g) {
+    ((Graphics2D) g)
+        .setRenderingHint(
+            RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
     // Draw background
     g.setColor(RACK_COLOUR);
     g.fillRect(0, 0, RACK_WIDTH, RACK_HEIGHT);
@@ -71,6 +73,10 @@ public class RackComp extends JComponent {
 
   private void moveSelectionBy(int i) {
     selection = Math.floorMod(selection + i, Board.RACK_CAPACITY);
+  }
+
+  public void resetSelection() {
+    selection = 0;
   }
 
   private class MoveAction extends AbstractAction {

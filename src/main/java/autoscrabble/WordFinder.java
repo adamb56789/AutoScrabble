@@ -1,5 +1,6 @@
 package autoscrabble;
 
+import autoscrabble.word.Line;
 import autoscrabble.word.LocatedWord;
 import autoscrabble.word.Word1D;
 
@@ -15,79 +16,77 @@ public class WordFinder {
     this.dictionaryWords = List.of(dictionary);
   }
 
-  public boolean isWord(String s) {
-    // The binary search is >= 0 if the key is found
-    return Collections.binarySearch(dictionaryWords, s.toUpperCase()) >= 0;
-  }
-
-  private int[] getLetterFrequency(char[] rack) {
+  public static int[] getLetterFrequency(char[] string) {
     int[] rackLetterFrequency = new int[DictEntry.ALPHABET.length];
-    for (char c : rack) {
-      if (Character.isAlphabetic(c)) {
+    for (char c : string) {
+      if (Character.isAlphabetic(c) && Character.isUpperCase(c)) {
         rackLetterFrequency[Character.getNumericValue(c) - 10]++;
       }
     }
     return rackLetterFrequency;
   }
 
-  public List<LocatedWord> getWords(
-      Board board, String line, char[] rack, Direction direction, int index) {
+  public boolean isWord(String s) {
+    // The binary search is >= 0 if the key is found
+    return Collections.binarySearch(dictionaryWords, s.toUpperCase()) >= 0;
+  }
+
+  public List<LocatedWord> getWords(Board board, Line line, char[] rack) {
     int blankCount = (int) String.valueOf(rack).chars().filter(c -> c == '_').count();
     var occupiedTiles = board.getOccupiedTiles();
     // Counting max possible length of words, possible future sorting???
 
+    String lineUpper = line.string.toUpperCase();
     var rackMask = DictEntry.createAlphabetMask(String.valueOf(rack));
-    var lineMask = DictEntry.createAlphabetMask(line.toUpperCase());
+    var lineMask = DictEntry.createAlphabetMask(lineUpper);
     boolean firstMove = !board.isGameStarted();
+    int[] rackFrequency = getLetterFrequency(rack);
+    boolean lineHasBlanks = !line.string.equals(lineUpper);
     return dictionary.stream()
-        .parallel()
-        // Preliminarily filtering out words that will always fail to save time  TODO x speedup
+        //                .parallel()
+        // Preliminarily filtering out words that will always fail to save time TODO measure speedup
         .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask, firstMove))
         // Get all words that could fit on the given line
-        .map(entry -> getWordsFitInLine(line, entry.getWord(), line.toUpperCase(), firstMove))
-        .flatMap(List::stream) // Merge words from each line
-        // Check that the word is not directly touching another
-        .filter(word -> endsAreFree(word, line))
-        // Filter to words that can be placed with available tiles
-        .filter(word -> rackHasEnoughLetters(word, line, getLetterFrequency(rack), blankCount))
+        .map(e -> getWords(line, e.getWord(), lineUpper, firstMove, rackFrequency, blankCount))
+        .flatMap(List::stream) // Merge
         // Add blanks from the line/rack and position the word on the board
-        .map(word -> situateAndAddBlanks(line, direction, index, occupiedTiles, word))
+        .map(word -> addBlanks(line, occupiedTiles, word, lineHasBlanks))
         .collect(Collectors.toList());
   }
 
-  private LocatedWord situateAndAddBlanks(
-      String line, Direction direction, int index, boolean[][] occupiedTiles, Word1D word) {
+  private LocatedWord addBlanks(
+      Line line, boolean[][] occupiedTiles, Word1D word, boolean lineHasBlank) {
 
     LocatedWord lWord;
-    boolean lineContainsBlank = line.indexOf(' ') != -1;
-    if (lineContainsBlank || word.blanksNeeded) {
+    if (lineHasBlank || word.blanksUsed > 0) {
       // If there any blanks involved we must copy any existing board tiles to the word to catch
       // any blanks on the board, and position the blank tile(s) from the rack
       boolean[] letterAlreadyPlaced = new boolean[word.length];
       int[] letterMultiplier = new int[word.length];
       char[] wordArr = word.string.toCharArray();
 
-      if (direction == Direction.HORIZONTAL) {
-        lWord = new LocatedWord(word, word.startIndex, index, direction);
+      // Copy potentially blank tile from the board
+      if (line.direction == Direction.HORIZONTAL) {
+        lWord = new LocatedWord(word, word.startIndex, line.index, line.direction);
         for (int i = lWord.x; i < lWord.x + word.length; i++) {
           if (occupiedTiles[lWord.y][i]) {
             letterAlreadyPlaced[i - lWord.x] = occupiedTiles[lWord.y][i];
-            wordArr[i - lWord.x] = line.charAt(i);
+            wordArr[i - lWord.x] = line.string.charAt(i);
           }
           letterMultiplier[i - lWord.x] = Rater.LETTER_BONUSES[lWord.y][i];
         }
       } else { // Vertical
-        lWord = new LocatedWord(word, index, word.startIndex, direction);
+        lWord = new LocatedWord(word, line.index, word.startIndex, line.direction);
         for (int i = lWord.y; i < lWord.y + word.length; i++) {
           if (occupiedTiles[i][lWord.x]) {
             letterAlreadyPlaced[i - lWord.y] = true;
-            wordArr[i - lWord.y] = line.charAt(i);
+            wordArr[i - lWord.y] = line.string.charAt(i);
           }
           letterMultiplier[i - lWord.y] = Rater.LETTER_BONUSES[i][lWord.x];
         }
       }
 
-      if (word.blanksNeeded) {
+      if (word.blanksUsed > 0) {
         // If there are blanks, put the blanks in the optimal position to avoid letter multipliers
         for (int i = 0; i < word.blankRequirements.length; i++) {
           var blankIndexList = new ArrayList<Integer>();
@@ -108,22 +107,17 @@ public class WordFinder {
       }
       lWord.string = String.valueOf(wordArr);
     } else {
-      if (direction == Direction.HORIZONTAL) {
-        lWord = new LocatedWord(word, word.startIndex, index, direction);
+      if (line.direction == Direction.HORIZONTAL) {
+        lWord = new LocatedWord(word, word.startIndex, line.index, line.direction);
       } else {
-        lWord = new LocatedWord(word, index, word.startIndex, direction);
+        lWord = new LocatedWord(word, line.index, word.startIndex, line.direction);
       }
     }
     return lWord;
   }
 
-  private boolean endsAreFree(Word1D word, String line) {
-    return (word.startIndex == 0 || line.charAt(word.startIndex - 1) == ' ')
-        && (word.startIndex + word.length == line.length()
-            || line.charAt(word.startIndex + word.length) == ' ');
-  }
-
-  private boolean preliminaryFilter(DictEntry entry, int blankCount, int rackMask, int lineMask, boolean firstMove) {
+  private boolean preliminaryFilter(
+      DictEntry entry, int blankCount, int rackMask, int lineMask, boolean firstMove) {
     // Bitmasks where the nth bit is 1 if the string contains the nth letter of the alphabet
     // First condition: the dictionary word and the line must have at least 1 matching letter
     // (skip if on the first move)
@@ -135,69 +129,76 @@ public class WordFinder {
         && Integer.bitCount(entry.alphabetMask & ~(rackMask | lineMask)) <= blankCount;
   }
 
-  private List<Word1D> getWordsFitInLine(
-      String line, String entry, String upperCaseLine, boolean firstMove) {
+  private List<Word1D> getWords(
+      Line line,
+      String entry,
+      String lineUpper,
+      boolean firstMove,
+      int[] rackLetterFrequency,
+      int blankCount) {
     var list = new ArrayList<Word1D>();
-    for (int j = 0; j < line.length() - entry.length() + 1; j++) {
+    for (int j = 0; j < line.string.length() - entry.length() + 1; j++) {
+      if (j != 0 && line.string.charAt(j - 1) != ' '
+          || j + entry.length() != line.string.length()
+              && line.string.charAt(j + entry.length()) != ' ') {
+        // Check to see if the ends of the word are blocked
+        continue;
+      }
+
       boolean collision = false;
-      boolean connectingLetterExists = false;
+      int connectingLetters = 0;
+      int[] placedLetterFrequency = new int[DictEntry.ALPHABET.length];
+      int blanksUsed = 0;
       for (int k = j; k < entry.length() + j; k++) {
-        // We need to match with at least 1 letter already on the board
-        if (line.charAt(k) != ' ') {
-          connectingLetterExists = true;
+        if (line.string.charAt(k) != ' ') {
+          // If this letter is the same as a letter on the board
+          if (lineUpper.charAt(k) != entry.charAt(k - j)) {
+            collision = true;
+            break;
+          } else {
+            connectingLetters++;
+          }
+        } else {
+          // If the letter must come from the rack
+          int letterIndex = Character.getNumericValue(entry.charAt(k - j)) - 10;
+          placedLetterFrequency[letterIndex]++;
+          if (placedLetterFrequency[letterIndex] > rackLetterFrequency[letterIndex]) {
+            // If we are out of letters check if we have a blank, or fail
+            if (blanksUsed < blankCount) {
+              blanksUsed++;
+            } else {
+              collision = true;
+              break;
+            }
+          }
         }
         if (firstMove && k == Board.SIZE / 2) {
-          connectingLetterExists = true;
-        }
-        // Check for collisions with letters on the board
-        if (upperCaseLine.charAt(k) != entry.charAt(k - j) && line.charAt(k) != ' ') {
-          collision = true;
-          break;
+          // If on the first move the centre counts as a connecting letter
+          connectingLetters++;
         }
       }
-      if (!collision && (connectingLetterExists)) {
-        list.add(new Word1D(entry, j));
+      // Add if there was no collision, 0 < letters placed < len, and the rack has enough letters
+      if (!collision
+          && connectingLetters != entry.length()
+          && connectingLetters > 0
+          && entry.length() - connectingLetters <= Board.RACK_CAPACITY) {
+        int[] blankRequirements = null;
+        if (blanksUsed > 0) {
+          // If we used blanks, mark the word with which letter(s) they were needed for and how many
+          blankRequirements = new int[DictEntry.ALPHABET.length];
+          for (int i = 0; i < placedLetterFrequency.length; i++) {
+            if (placedLetterFrequency[i] > rackLetterFrequency[i]) {
+              blankRequirements[i] = placedLetterFrequency[i] - rackLetterFrequency[i];
+              placedLetterFrequency[i]--; // If we use a blank don't record it here
+            } else {
+              blankRequirements[i] = 0;
+            }
+          }
+        }
+        Word1D word = new Word1D(entry, j, blankRequirements, blanksUsed, placedLetterFrequency);
+        list.add(word);
       }
     }
     return list;
-  }
-
-  private boolean rackHasEnoughLetters(
-      Word1D word, String line, int[] rackLetterFrequency, int blankCount) {
-    int[] remainingLetters = rackLetterFrequency.clone();
-    boolean placedALetter = false; // If we do not place a letter then the word is already there
-    boolean ranOutOfLetters = false;
-    int blanksRemaining = blankCount;
-    for (int j = 0; j < word.string.length(); j++) { // Iterate through the word
-      // If the corresponding position on the line is empty we must fill it from the rack
-      if (line.charAt(j + word.startIndex) == ' ') {
-        placedALetter = true;
-        // Decrement the count of the letter
-        int letterIndex = Character.getNumericValue(word.string.charAt(j)) - 10;
-        remainingLetters[letterIndex]--;
-        if (remainingLetters[letterIndex] < 0) {
-          // If we are out of letters check if we have a blank, or fail
-          if (blanksRemaining > 0) {
-            blanksRemaining--;
-          } else {
-            ranOutOfLetters = true;
-            break;
-          }
-        }
-      }
-    }
-    boolean validWord = !ranOutOfLetters && placedALetter;
-    if (validWord && blankCount - blanksRemaining > 0) {
-      // If we used blanks, mark the word with which letter(s) they were needed for and how many
-      for (int i = 0; i < remainingLetters.length; i++) {
-        if (remainingLetters[i] < 0) {
-          remainingLetters[i] = -remainingLetters[i];
-        } else {
-          remainingLetters[i] = 0;
-        }
-      }
-      word.setBlankRequirements(remainingLetters);
-    }
-    return validWord;
   }
 }

@@ -27,6 +27,9 @@ public class Rater {
   };
   public static final int[][] LETTER_BONUSES = computeLetterBonuses();
   public static final int[][] WORD_BONUSES = computeWordBonuses();
+  public double[] SMART_LETTER_WEIGHTS = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -8, 0, 0, 0, 0, 0, 0, 0, -25
+  };
   private final Board board;
 
   public Rater(Board board) {
@@ -72,9 +75,30 @@ public class Rater {
     return arr;
   }
 
-  private int rateWord(List<Letter> word) {
+  public static int wordMultiplier(List<Letter> word) {
+    int multiplier = 1;
+    for (var letter : word) {
+      if (letter.justPlaced()) {
+        multiplier *= WORD_BONUSES[letter.getY()][letter.getX()];
+      }
+    }
+    return multiplier;
+  }
+
+  public static int rateLetter(Letter letter) {
+    int letterScore = letter.letterScore();
+    if (Character.isLowerCase(letter.getChar())) {
+      return 0;
+    }
+    if (!letter.justPlaced()) {
+      return letterScore;
+    }
+    return letterScore * LETTER_BONUSES[letter.getY()][letter.getX()];
+  }
+
+  private static int rateWord(List<Letter> word) {
     // Add up the scores of the letters
-    int total = word.stream().mapToInt(this::rateLetter).sum();
+    int total = word.stream().mapToInt(Rater::rateLetter).sum();
 
     // Apply any potential word multipliers
     total *= wordMultiplier(word);
@@ -86,25 +110,12 @@ public class Rater {
     return total;
   }
 
-  private int rateLetter(Letter letter) {
-    int letterScore = letter.letterScore();
-    if (Character.isLowerCase(letter.getChar())) {
-      return 0;
+  public double smartLetterRating(LocatedWord word) {
+    double rating = word.blanksUsed * SMART_LETTER_WEIGHTS[SMART_LETTER_WEIGHTS.length - 1];
+    for (int i = 0; i < DictEntry.ALPHABET.length; i++) {
+      rating += word.placedLetterFrequency[i] * SMART_LETTER_WEIGHTS[i];
     }
-    if (!letter.justPlaced()) {
-      return letterScore;
-    }
-    return letterScore * LETTER_BONUSES[letter.getY()][letter.getX()];
-  }
-
-  private int wordMultiplier(List<Letter> word) {
-    int multiplier = 1;
-    for (var letter : word) {
-      if (letter.justPlaced()) {
-        multiplier *= WORD_BONUSES[letter.getY()][letter.getX()];
-      }
-    }
-    return multiplier;
+    return rating;
   }
 
   public int rate(LocatedWord word) {

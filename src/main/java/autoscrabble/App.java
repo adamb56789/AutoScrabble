@@ -2,21 +2,44 @@ package autoscrabble;
 
 import autoscrabble.userinterface.BoardComp;
 import autoscrabble.userinterface.RackComp;
+import autoscrabble.word.RatedWord;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.stream.IntStream;
 
 public class App {
   public static final Color BACKGROUND_COLOUR = Color.decode("#F3F3F3");
-  public static final String SWAP_FOCUS = "swap focus";
-  static Random random = new Random(0);
+  public static final int PLAYER_COUNT = 2;
+  public static final int ITERATIONS = 100;
+  static List<int[]> ratings = new ArrayList<>();
   private static Board board;
 
   public static void main(String[] args) {
-    board = new Board();
+    // Load the dictionary and prepare the word finder
+    var inputStream = App.class.getClassLoader().getResourceAsStream("Dictionary.txt");
+    assert inputStream != null;
+    var streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+    var reader = new BufferedReader(streamReader);
+    var dictionary = new String[] {};
+    try {
+      dictionary = reader.lines().toArray(String[]::new);
+      for (String line; (line = reader.readLine()) != null; ) {
+        System.out.println(line);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    var wordFinder = new WordFinder(dictionary);
+    board = new Board(wordFinder);
 
     JPanel panel = new JPanel();
     panel.setLayout(new GridBagLayout());
@@ -46,6 +69,7 @@ public class App {
           public void actionPerformed(ActionEvent e) {
             System.out.println("Reset");
             board.initialise();
+            rackComp.resetSelection();
             rackComp.requestFocus();
             panel.repaint();
           }
@@ -60,13 +84,7 @@ public class App {
     var autoButton = new JButton();
     autoButton.setFocusable(false);
     autoButton.setText("Auto");
-    autoButton.addActionListener(
-        new AbstractAction() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            (new Thread(() -> playAutomatically(panel))).start();
-          }
-        });
+    autoButton.addActionListener(new multiAuto(panel, wordFinder));
     gbc = new GridBagConstraints();
     gbc.gridx = 1;
     gbc.gridy = 2;
@@ -87,7 +105,10 @@ public class App {
     frame.getContentPane().setBackground(BACKGROUND_COLOUR);
   }
 
-  private static void playAutomatically(JPanel gui) {
+  private static double playAutomatically(JPanel gui, Board board, int seed) {
+    var rng = new Random(seed);
+    int smartPlayer = seed % PLAYER_COUNT;
+    var racks = new ArrayList<char[]>();
     var tileDistribution =
         new int[] {9, 2, 2, 4, 12, 2, 3, 2, 9, 1, 1, 4, 2, 6, 8, 2, 1, 6, 4, 6, 4, 2, 2, 1, 2, 1};
     var bag = new ArrayList<Character>();
@@ -99,40 +120,124 @@ public class App {
     bag.add('_');
     bag.add('_');
 
-    for (int i = 0; i < 7; i++) {
-      board.placeInRack(drawTile(bag), i);
+    for (int i = 0; i < PLAYER_COUNT; i++) {
+      char[] rack = new char[Board.RACK_CAPACITY];
+      for (int j = 0; j < Board.RACK_CAPACITY; j++) {
+        rack[j] = drawTile(rng, bag);
+      }
+      racks.add(rack);
     }
 
-    double totalRating = 0;
+    int[] rating = new int[PLAYER_COUNT + 1];
+    rating[PLAYER_COUNT] = smartPlayer;
     int moveCount = 0;
-    long start = System.nanoTime();
     while (true) {
-      var word = board.findBestWord();
+      int player = moveCount % PLAYER_COUNT;
+      board.setRack(racks.get(player));
+      RatedWord word;
+      if (player == smartPlayer) {
+        word = board.findBestWordSmart();
+      } else {
+        word = board.findBestWord();
+      }
       if (word == null) {
         break;
       }
+      board.setUserMessage(
+          String.format(
+              "Found %s at (%c%d) %s, scoring %s, ",
+              word.string,
+              ((char) (word.x + 97)),
+              (15 - word.y),
+              word.isHorizontal ? "horizontally" : "vertically",
+              word.getRating()));
       board.makeMove(word);
-      totalRating += word.getRating();
+      rating[player] += word.getRating();
       moveCount++;
       for (int i = 0; i < board.getRack().length; i++) {
         if (board.getRack()[i] == ' ') {
           if (bag.size() > 0) {
-            board.getRack()[i] = drawTile(bag);
+            board.getRack()[i] = drawTile(rng, bag);
           }
         }
       }
-      gui.repaint();
+//      gui.repaint();
     }
-    System.out.printf(
-        "Moves: %d%nTotal score: %.0f%nAverage: %.1f%nTime: %.1f ms%n",
-        moveCount, totalRating, totalRating / moveCount, (System.nanoTime() - start) / 1000000.0);
-    gui.repaint();
+    App.ratings.add(rating);
+    double smartAverage = 0;
+    double normalAverage = 0;
+    for (int i = 0; i < PLAYER_COUNT; i++) {
+      if (i == rating[PLAYER_COUNT]) {
+        smartAverage += (double) rating[i] / ITERATIONS;
+      } else {
+        normalAverage += (double) rating[i] / (ITERATIONS * (PLAYER_COUNT - 1));
+      }
+    }
+    return smartAverage - normalAverage;
+//    gui.repaint();
   }
 
-  private static char drawTile(ArrayList<Character> bag) {
-    int randomIndex = random.nextInt(bag.size());
+  private static char drawTile(Random rng, ArrayList<Character> bag) {
+    int randomIndex = rng.nextInt(bag.size());
     var character = bag.get(randomIndex);
     bag.remove(randomIndex);
     return character;
+  }
+
+  private static class multiAuto extends AbstractAction {
+    private final JPanel panel;
+    private final WordFinder wordFinder;
+
+    public multiAuto(JPanel panel, WordFinder wordFinder) {
+      this.panel = panel;
+      this.wordFinder = wordFinder;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      for (double constant = -40; constant <= -15; constant += 1) {
+        ratings = new ArrayList<>();
+        IntStream.range(0, ITERATIONS)
+            .parallel()
+            .forEach(
+                i -> playAutomatically(panel, ITERATIONS == 1 ? board : new Board(wordFinder), i));
+        double[] averages = new double[2];
+        for (int[] rating : ratings) {
+          for (int i = 0; i < PLAYER_COUNT; i++) {
+            if (i == rating[PLAYER_COUNT]) {
+              averages[0] += (double) rating[i] / ITERATIONS;
+            } else {
+              averages[1] += (double) rating[i] / (ITERATIONS * (PLAYER_COUNT - 1));
+            }
+          }
+        }
+        System.out.printf(
+            "%.1f %.2f %.2f %.2f%n",
+            constant, averages[0], averages[1], averages[0] - averages[1]);
+      }
+    }
+  }
+
+  private static class learning extends AbstractAction {
+    private final JPanel panel;
+    private final WordFinder wordFinder;
+
+    public learning(JPanel panel, WordFinder wordFinder) {
+      this.panel = panel;
+      this.wordFinder = wordFinder;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+
+      IntStream.range(0, ITERATIONS)
+          .parallel()
+          .forEach(
+              i -> {
+                var weights = new double[27];
+                var score = playAutomatically(panel, new Board(wordFinder, weights), i);
+                System.out.printf("%f");
+              });
+    }
   }
 }

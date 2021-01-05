@@ -205,7 +205,7 @@ public class BoardComp extends JComponent {
     @Override
     public void actionPerformed(ActionEvent e) {
       getParent().setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      var word = board.findBestWord();
+      var word = board.findBestWordSmart();
       if (word != null) {
         requestFocus(); // Get focus to display word start location
         board.makeMove(word);
