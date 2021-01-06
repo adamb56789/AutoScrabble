@@ -1,7 +1,7 @@
 package autoscrabble;
 
-import autoscrabble.userinterface.BoardComp;
-import autoscrabble.userinterface.RackComp;
+import autoscrabble.userinterface.BoardView;
+import autoscrabble.userinterface.RackView;
 
 import javax.swing.*;
 import java.awt.*;
@@ -35,22 +35,28 @@ public class App {
 
     JPanel panel = new JPanel();
     panel.setLayout(new GridBagLayout());
-    GridBagConstraints gbc;
-    gbc = new GridBagConstraints();
+
+    var gbc = new GridBagConstraints();
     gbc.gridx = 0;
     gbc.gridy = 0;
     gbc.fill = GridBagConstraints.HORIZONTAL;
-    var boardComp = new BoardComp(board);
+    var boardComp = new BoardView(board);
     panel.add(boardComp, gbc);
 
+    gbc = new GridBagConstraints();
+    gbc.gridx = 0;
+    gbc.gridy = 1;
+    var rackComp = new RackView(board, boardComp);
+    panel.add(rackComp, gbc);
+
+    JPanel buttonPanel = new JPanel();
+    buttonPanel.setLayout(new GridBagLayout());
     gbc = new GridBagConstraints();
     gbc.gridx = 1;
     gbc.gridy = 0;
     gbc.fill = GridBagConstraints.HORIZONTAL;
-    gbc.insets = new Insets(16, 0, 0, 0);
     gbc.anchor = GridBagConstraints.NORTH;
-    var rackComp = new RackComp(board);
-    panel.add(rackComp, gbc);
+    panel.add(buttonPanel, gbc);
 
     var fastButton = new JButton();
     fastButton.setFocusable(false);
@@ -58,10 +64,10 @@ public class App {
     fastButton.addActionListener(boardComp.getFindWordFast());
     gbc = new GridBagConstraints();
     gbc.gridx = 1;
-    gbc.gridy = 1;
+    gbc.gridy = 0;
+    gbc.insets = new Insets(1, 0, 1, 0);
     gbc.fill = GridBagConstraints.HORIZONTAL;
-    gbc.anchor = GridBagConstraints.SOUTH;
-    panel.add(fastButton, gbc);
+    buttonPanel.add(fastButton, gbc);
 
     var resetButton = new JButton();
     resetButton.setFocusable(false);
@@ -80,10 +86,10 @@ public class App {
         });
     gbc = new GridBagConstraints();
     gbc.gridx = 1;
-    gbc.gridy = 2;
+    gbc.gridy = 1;
+    gbc.insets = new Insets(1, 0, 1, 0);
     gbc.fill = GridBagConstraints.HORIZONTAL;
-    gbc.anchor = GridBagConstraints.SOUTH;
-    panel.add(resetButton, gbc);
+    buttonPanel.add(resetButton, gbc);
 
     var autoButton = new JButton();
     autoButton.setFocusable(false);
@@ -91,12 +97,18 @@ public class App {
     autoButton.addActionListener(new autoModeAction(panel, board));
     gbc = new GridBagConstraints();
     gbc.gridx = 1;
-    gbc.gridy = 3;
+    gbc.gridy = 2;
+    gbc.insets = new Insets(1, 0, 1, 0);
     gbc.fill = GridBagConstraints.HORIZONTAL;
-    gbc.anchor = GridBagConstraints.SOUTH;
-    panel.add(autoButton, gbc);
+    buttonPanel.add(autoButton, gbc);
 
-    var scrollPane = new JScrollPane(panel);
+    var outerPanel = new JPanel();
+    outerPanel.setLayout(new GridBagLayout());
+    gbc = new GridBagConstraints();
+    gbc.insets = new Insets(5, 5, 5, 5);
+    outerPanel.add(panel, gbc);
+
+    var scrollPane = new JScrollPane(outerPanel);
 
     var frame = new JFrame();
     frame.add(scrollPane);

@@ -64,7 +64,7 @@ public class Board {
     }
 
     while (true) {
-      RatedWord word = findBestWord();
+      RatedWord word = findHighestScoringWord();
       if (word == null) {
         break;
       }
@@ -431,6 +431,15 @@ public class Board {
   }
 
   public RatedWord runFinder() {
+    for (var row : board) {
+      for (var c : row) {
+        if (c != ' ') {
+          gameStarted = true;
+          break;
+        }
+      }
+    }
+
     boolean gameStartedBefore = gameStarted;
     var word = findBestWord();
 

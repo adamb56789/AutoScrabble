@@ -11,7 +11,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 
-public class BoardComp extends JComponent {
+public class BoardView extends JComponent {
   public static final int SQUARE_SIZE = 40;
 
   private static final Font FONT_MEDIUM = new Font("Arial", Font.PLAIN, 16);
@@ -54,7 +54,7 @@ public class BoardComp extends JComponent {
   private Direction typingDirection = null;
   private RatedWord stagedWord = null;
 
-  public BoardComp(Board board) {
+  public BoardView(Board board) {
     super();
     this.board = board;
     // Load images
@@ -211,6 +211,7 @@ public class BoardComp extends JComponent {
         getParent().repaint();
       } else {
         requestFocus(); // Get focus to display word start location
+        getParent().repaint();
         board.makeMove(stagedWord);
         board.setUserMessage("");
         xSelection = stagedWord.x;
@@ -265,9 +266,9 @@ public class BoardComp extends JComponent {
   private class LetterKeyListener extends KeyAdapter {
     @Override
     public void keyTyped(KeyEvent e) {
-      stagedWord = null;
       char keyChar = e.getKeyChar();
       if (Character.isAlphabetic(keyChar)) {
+        stagedWord = null;
         if (typingDirection == null
             && board.getBoard()[ySelection][xSelection] != ' '
             && xSelection < Board.SIZE - 1
@@ -296,6 +297,7 @@ public class BoardComp extends JComponent {
           board.placeTile(Character.toUpperCase(keyChar), xSelection, ySelection);
         }
       } else if (keyChar == KeyEvent.VK_BACK_SPACE) {
+        stagedWord = null;
         board.placeTile(' ', xSelection, ySelection);
         if (xSelection > 0 && typingDirection == Direction.HORIZONTAL) {
           xSelection--;

@@ -7,19 +7,20 @@ import java.awt.*;
 import java.awt.event.*;
 
 /** A UI component for the rack and its tiles */
-public class RackComp extends JComponent {
+public class RackView extends JComponent {
   public static final Color RACK_COLOUR = Color.decode("#8C4000");
   public static final int RACK_TILE_SPACING = 4;
-  public static final int RACK_HEIGHT =
-      Board.RACK_CAPACITY * BoardComp.SQUARE_SIZE + (Board.RACK_CAPACITY + 1) * RACK_TILE_SPACING;
-  public static final int RACK_WIDTH = BoardComp.SQUARE_SIZE + 2 * RACK_TILE_SPACING;
+  public static final int RACK_HEIGHT = BoardView.SQUARE_SIZE + 2 * RACK_TILE_SPACING;
+  public static final int RACK_WIDTH = Board.RACK_CAPACITY * BoardView.SQUARE_SIZE + (Board.RACK_CAPACITY + 1) * RACK_TILE_SPACING;
   private static final String MOVE_UP = "move up";
   private static final String MOVE_DOWN = "move down";
   private final Board board;
+  private final BoardView boardView;
   private int selection = 0;
 
-  public RackComp(Board board) {
+  public RackView(Board board, BoardView boardView) {
     this.board = board;
+    this.boardView = boardView;
     var dimension = new Dimension(RACK_WIDTH, RACK_HEIGHT);
     setPreferredSize(dimension);
     setMinimumSize(dimension);
@@ -58,16 +59,16 @@ public class RackComp extends JComponent {
     for (int i = 0; i < board.getRack().length; i++) {
       if (board.getRack()[i] != ' ') {
         if (board.getRack()[i] == '_' || Character.isAlphabetic(board.getRack()[i])) {
-          int tileY = RACK_TILE_SPACING + i * (BoardComp.SQUARE_SIZE + RACK_TILE_SPACING);
-          Tile.paintTile(g, board.getRack()[i], RACK_TILE_SPACING, tileY);
+          int tileX = RACK_TILE_SPACING + i * (BoardView.SQUARE_SIZE + RACK_TILE_SPACING);
+          Tile.paintTile(g, board.getRack()[i], tileX, RACK_TILE_SPACING);
         }
       }
     }
 
     // Draw the selection if in focus
     if (selection != -1 && isFocusOwner()) {
-      int tileY = RACK_TILE_SPACING + selection * (BoardComp.SQUARE_SIZE + RACK_TILE_SPACING);
-      Tile.drawSelectionBox((Graphics2D) g, RACK_TILE_SPACING, tileY);
+      int tileX = RACK_TILE_SPACING + selection * (BoardView.SQUARE_SIZE + RACK_TILE_SPACING);
+      Tile.drawSelectionBox((Graphics2D) g, tileX, RACK_TILE_SPACING);
     }
   }
 
@@ -89,6 +90,7 @@ public class RackComp extends JComponent {
     @Override
     public void actionPerformed(ActionEvent e) {
       moveSelectionBy(x);
+      boardView.resetStagedWord();
       repaint();
     }
   }
@@ -96,8 +98,9 @@ public class RackComp extends JComponent {
   private class SelectTileMouseListener extends MouseAdapter {
     @Override
     public void mousePressed(MouseEvent e) {
+      boardView.resetStagedWord();
       requestFocus(); // Focus on click
-      selection = (e.getY() + RACK_TILE_SPACING / 2) / (BoardComp.SQUARE_SIZE + RACK_TILE_SPACING);
+      selection = (e.getX() + RACK_TILE_SPACING / 2) / (BoardView.SQUARE_SIZE + RACK_TILE_SPACING);
       getParent().repaint(); // Repaint to update selection boxes
     }
   }

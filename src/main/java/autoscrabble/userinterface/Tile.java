@@ -23,7 +23,7 @@ public final class Tile {
   /** Draw a tile with the letter at the specified location. */
   public static void paintTile(Graphics g, char letter, int x, int y) {
     // The blank tile image
-    g.drawImage(BoardComp.tileImage, x, y, null);
+    g.drawImage(BoardView.tileImage, x, y, null);
 
     // The letter
     g.setFont(LETTER_FONT);
@@ -45,7 +45,7 @@ public final class Tile {
   /** Draw a selection box at the specified location */
   public static void drawSelectionBox(Graphics2D g, int x, int y) {
     g.setColor(SELECTION_COLOUR);
-    int rectSize = BoardComp.SQUARE_SIZE + SELECTION_LINE_WEIGHT - 2 * SELECTION_INTERIOR_OVERLAP;
+    int rectSize = BoardView.SQUARE_SIZE + SELECTION_LINE_WEIGHT - 2 * SELECTION_INTERIOR_OVERLAP;
     int squareOffset = SELECTION_INTERIOR_OVERLAP - SELECTION_LINE_WEIGHT / 2;
 
     g.setStroke(new BasicStroke(SELECTION_LINE_WEIGHT));
