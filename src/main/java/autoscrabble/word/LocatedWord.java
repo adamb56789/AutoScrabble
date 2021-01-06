@@ -20,6 +20,6 @@ public class LocatedWord extends Word1D {
 
   public RatedWord getRatedWord(Rater rater) {
     int rating = rater.rate(this);
-    return new RatedWord(this, x, y, direction, rating, rating + rater.smartLetterRating(this));
+    return new RatedWord(this, x, y, direction, rating, 0);
   }
 }

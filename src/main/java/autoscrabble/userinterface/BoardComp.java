@@ -9,11 +9,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Random;
 
 public class BoardComp extends JComponent {
   public static final int SQUARE_SIZE = 40;
 
-  private static final Font FONT_MEDIUM = new Font("Arial", Font.PLAIN, 20);
+  private static final Font FONT_MEDIUM = new Font("Arial", Font.PLAIN, 18);
   private static final Font FONT_SMALL = new Font("Arial", Font.PLAIN, 12);
   private static final Color BOARD_BACKGROUND_COLOUR = Color.decode("#ECE8D9");
   private static final Color TEXT_COLOUR = Color.black;
@@ -35,7 +38,6 @@ public class BoardComp extends JComponent {
   private static final int BOARD_RIGHT_SPACING = 20;
 
   private static final String FIND_WORD = "find word";
-  private static final String USER_INTERRUPT = "user interrupt";
   private static final String MOVE_UP = "move up";
   private static final String MOVE_DOWN = "move down";
   private static final String MOVE_LEFT = "move left";
@@ -86,14 +88,12 @@ public class BoardComp extends JComponent {
     getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke("RIGHT"), MOVE_RIGHT);
     // Global hotkeys
     getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ENTER"), FIND_WORD);
-    getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ESCAPE"), USER_INTERRUPT);
 
     getActionMap().put(MOVE_UP, new MoveAction(0, -1));
     getActionMap().put(MOVE_DOWN, new MoveAction(0, 1));
     getActionMap().put(MOVE_LEFT, new MoveAction(-1, 0));
     getActionMap().put(MOVE_RIGHT, new MoveAction(1, 0));
     getActionMap().put(FIND_WORD, new FindWordAction());
-    getActionMap().put(USER_INTERRUPT, new UserInterruptAction());
 
     addFocusListener(
         new FocusAdapter() {
@@ -194,18 +194,77 @@ public class BoardComp extends JComponent {
     }
   }
 
-  private class UserInterruptAction extends AbstractAction {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      board.userInterrupt();
-    }
+  public FindWordFast getFindWordFast() {
+    return new FindWordFast();
   }
 
   private class FindWordAction extends AbstractAction {
     @Override
     public void actionPerformed(ActionEvent e) {
       getParent().setCursor(new Cursor(Cursor.WAIT_CURSOR));
+      boolean gameStarted = board.getGameStarted();
       var word = board.findBestWordSmart();
+
+      // Calculate the bag from the currently known tiles
+      var bag = board.computeBag();
+      for (var c : board.getRack()) {
+        if (Character.isAlphabetic(c)) {
+          bag.add(c);
+        }
+      }
+      if (word == null || bag.size() > 14) {
+        var rng = new Random(String.valueOf(board.getRack()).hashCode());
+
+        var bagCopy = new ArrayList<>(bag);
+
+        double avgRating = 1; // Start at 1 to avoid potential div/0 later
+        int simCount = 10;
+        boolean foundWord = false;
+        for (int i = 0; i < simCount; i++) {
+          var newRack = new char[Board.RACK_CAPACITY];
+          Collections.shuffle(bagCopy, rng);
+          for (int j = 0; j < Board.RACK_CAPACITY && j < bagCopy.size(); j++) {
+            newRack[j] = bagCopy.get(j);
+          }
+          var boardCopy = board.getCopy();
+          boardCopy.setGameStarted(gameStarted);
+          boardCopy.setRack(newRack);
+          var newWord = boardCopy.findHighestScoringWord();
+          if (newWord != null) {
+            foundWord = true;
+            avgRating += newWord.getRating();
+          }
+        }
+        if (foundWord) {
+          avgRating /= simCount; // Average
+          if (word == null) {
+            board.setUserMessage("No words found, try tile exchange");
+          } else {
+            board.setUserMessage(
+                board.getUserMessage() + " Exchange value: " + (int) (avgRating - word.getRating()));
+          }
+        }
+      }
+
+      if (word != null) {
+        requestFocus(); // Get focus to display word start location
+        board.makeMove(word);
+        xSelection = word.x;
+        ySelection = word.y;
+        typingDirection = null;
+      }
+      getParent().setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+      getParent().repaint();
+    }
+  }
+
+  private class FindWordFast extends AbstractAction {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      getParent().setCursor(new Cursor(Cursor.WAIT_CURSOR));
+      boolean gameStarted = board.getGameStarted();
+      var word = board.findHighestScoringWord();
+
       if (word != null) {
         requestFocus(); // Get focus to display word start location
         board.makeMove(word);

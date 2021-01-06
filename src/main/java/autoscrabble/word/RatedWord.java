@@ -24,6 +24,7 @@ public class RatedWord extends LocatedWord {
 
   @Override
   public String toString() {
-    return String.format("%s, (%d,%d), %d, %.1f", string, x, y, rating, smartRating);
+    return String.format(
+        "%s, (%d,%d), %d, %.1f, %d", string, x, y, rating, smartRating, blanksUsed);
   }
 }

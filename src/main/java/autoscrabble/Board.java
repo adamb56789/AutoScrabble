@@ -12,25 +12,72 @@ public class Board {
   public static final int SIZE = 15;
   public static final int RACK_CAPACITY = 7;
   private final WordFinder wordFinder;
-  private final char[][] board = new char[SIZE][SIZE];
-  private final boolean[][] occupiedTiles = new boolean[board.length][board.length];
+  private char[][] board = new char[SIZE][SIZE];
+  private boolean[][] occupiedTiles = new boolean[board.length][board.length];
   private char[] rack = new char[RACK_CAPACITY];
-  private boolean userInterrupt;
   private String userMessage = "";
   private boolean gameStarted = false;
-  private final Rater rater;
 
   public Board(WordFinder wordFinder) {
     initialise();
     this.wordFinder = wordFinder;
-    rater = new Rater(this);
   }
 
-  public Board(WordFinder wordFinder, double[] weights) {
-    initialise();
+  public Board(
+      char[][] board,
+      boolean[][] occupiedTiles,
+      char[] rack,
+      WordFinder wordFinder,
+      boolean gameStarted) {
+    this.board = board;
+    this.occupiedTiles = occupiedTiles;
+    this.rack = rack;
     this.wordFinder = wordFinder;
-    rater = new Rater(this);
-    rater.SMART_LETTER_WEIGHTS = weights;
+    this.gameStarted = gameStarted;
+  }
+
+  public ArrayList<Character> computeBag() {
+    var rackFrequency = WordFinder.getLetterFrequency(getRack());
+    int rackBlanks = 0;
+    for (var c : getRack()) {
+      if (c == '_') {
+        rackBlanks++;
+      }
+    }
+    int[] boardFrequency = new int[DictEntry.ALPHABET.length];
+    int boardBlanks = 0;
+    for (var row : getBoard()) {
+      for (var c : row) {
+        if (Character.isAlphabetic(c) && Character.isUpperCase(c)) {
+          boardFrequency[Character.getNumericValue(c) - 10]++;
+        } else if (c == '_') {
+          boardBlanks += 1;
+        }
+      }
+    }
+    var bag = new ArrayList<Character>();
+    for (int i = 0; i < App.MAX_BLANKS - (boardBlanks + rackBlanks); i++) {
+      bag.add('_');
+    }
+    for (int i = 0; i < boardFrequency.length; i++) {
+      for (int j = 0; j < App.TILE_DISTRIBUTION[i] - (boardFrequency[i] + rackFrequency[i]); j++) {
+        bag.add((char) (65 + i));
+      }
+    }
+    return bag;
+  }
+
+  public Board getCopy() {
+    var boardCopy = new char[Board.SIZE][Board.SIZE];
+    var occupiedTilesCopy = new boolean[Board.SIZE][Board.SIZE];
+    var rackCopy = rack.clone();
+    for (int i = 0; i < Board.SIZE; i++) {
+      for (int j = 0; j < Board.SIZE; j++) {
+        boardCopy[i][j] = board[i][j];
+        occupiedTilesCopy[i][j] = occupiedTiles[i][j];
+      }
+    }
+    return new Board(boardCopy, occupiedTilesCopy, rackCopy, wordFinder, gameStarted);
   }
 
   /**
@@ -55,9 +102,9 @@ public class Board {
   }
 
   /** Make a move by placing a word on the board and removing tiles from the rack. */
-  public void makeMove(RatedWord word) {
+  public void makeMove(LocatedWord word) {
     int blanksNeeded = word.blanksUsed;
-    int[] lettersNeeded = word.placedLetterFrequency;
+    int[] lettersNeeded = word.placedLetterFrequency.clone();
     for (int i = 0; i < rack.length; i++) {
       int cValue = Character.getNumericValue(rack[i]) - 10;
       if (cValue >= 0) { // If a letter
@@ -76,7 +123,7 @@ public class Board {
     // Sanity check
     for (var n : lettersNeeded) {
       if (n != 0) {
-        System.out.println("Mismatch: " + Arrays.toString(lettersNeeded) + word);
+        System.out.println("Mismatch: " + Arrays.toString(word.placedLetterFrequency) + word);
       }
     }
     if (blanksNeeded != 0) {
@@ -150,8 +197,30 @@ public class Board {
     return gameStarted;
   }
 
+  public RatedWord findHighestScoringWord() {
+    var rater = new Rater(this);
+
+    return IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
+//        .parallel()
+        .mapToObj(
+            i -> {
+              String line = getLines(board).get(i);
+              // Get a list of possible words
+              Direction direction = i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
+              int index = i < board.length ? i : i - board.length;
+              return wordFinder.getWords(this, new Line(line, direction, index), rack);
+            })
+        .filter(Objects::nonNull) // Remove any lines that were skipped
+        .flatMap(List::stream) // Merge lists from each line
+        .filter(this::moveIsValid)
+        .map(word -> word.getRatedWord(rater))
+        .max(Comparator.comparingDouble(RatedWord::getRating))
+        .orElse(null);
+  }
+
   public RatedWord findBestWord() {
     long startTime = System.currentTimeMillis();
+    var rater = new Rater(this);
 
     // If the board is invalid display an error
     if (!linesAreValid(getLines(board))) {
@@ -191,7 +260,7 @@ public class Board {
         bestWord = word;
         userMessage =
             String.format(
-                "Found %s at (%c%d) %s, scoring %s, ",
+                "Found %s at (%c%d) %s, scoring %s.",
                 word.string,
                 ((char) (word.x + 97)),
                 (15 - word.y),
@@ -199,18 +268,12 @@ public class Board {
                 word.getRating());
         break;
       }
-      if (userInterrupt) {
-        userMessage = "Cancelled ";
-        break;
-      }
     }
     if (bestWord == null) {
       userMessage = "No words found";
     } else {
       long finishTime = System.currentTimeMillis();
-      userMessage +=
-          String.format("%s %d ms", userInterrupt ? "after" : "in", (finishTime - startTime));
-      userInterrupt = false;
+      userMessage += String.format("%s %d ms", "in", (finishTime - startTime));
     }
     gameStarted = true;
     return bestWord;
@@ -226,7 +289,7 @@ public class Board {
     // Find all possible words that fit in the line
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-            //            .parallel()
+//            .parallel()
             .mapToObj(
                 i -> {
                   String line = getLines(board).get(i);
@@ -246,6 +309,7 @@ public class Board {
             .flatMap(List::stream) // Merge lists from each line
             .filter(this::moveIsValid)
             .map(word -> word.getRatedWord(rater)) // Rate the words
+            .sorted(Collections.reverseOrder(Comparator.comparingDouble(RatedWord::getRating)))
             .collect(Collectors.toList());
 
     if (words.size() == 0) {
@@ -253,12 +317,30 @@ public class Board {
       userMessage = "No words found";
       return null;
     }
-
-    RatedWord bestWord =
-        words.stream().max(Comparator.comparingDouble(RatedWord::getSmartRating)).orElse(null);
+    var smartList = new ArrayList<RatedWord>();
+    int max = 20;
+    for (int i = 0; i < words.size() && i < max; i++) {
+      var word = words.get(i);
+      smartList.add(
+          new RatedWord(
+              word,
+              word.x,
+              word.y,
+              word.direction,
+              word.getRating(),
+              word.getRating() + rater.smartRating(word)));
+    }
+    var smartWords =
+        smartList.stream()
+            .sorted(Collections.reverseOrder(Comparator.comparingDouble(RatedWord::getSmartRating)))
+            .collect(Collectors.toList());
+    System.out.println(smartWords);
+    System.out.println("Highest score: " + words.get(0));
+    var bestWord = smartWords.get(0);
+    assert bestWord != null;
     userMessage =
         String.format(
-            "Found %s at (%c%d) %s, scoring %s, ",
+            "Found %s at (%c%d) %s, scoring %s.",
             bestWord.string,
             ((char) (bestWord.x + 97)),
             (15 - bestWord.y),
@@ -266,10 +348,6 @@ public class Board {
             bestWord.getRating());
     gameStarted = true;
     return bestWord;
-  }
-
-  public void userInterrupt() {
-    userInterrupt = true;
   }
 
   /**
@@ -319,5 +397,13 @@ public class Board {
     }
     Arrays.fill(rack, ' ');
     gameStarted = false;
+  }
+
+  public boolean getGameStarted() {
+    return gameStarted;
+  }
+
+  public void setGameStarted(boolean gameStarted) {
+    this.gameStarted = gameStarted;
   }
 }

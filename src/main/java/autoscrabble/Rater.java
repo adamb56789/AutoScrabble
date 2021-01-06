@@ -2,9 +2,12 @@ package autoscrabble;
 
 import autoscrabble.word.Letter;
 import autoscrabble.word.LocatedWord;
+import autoscrabble.word.RatedWord;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 // word format: letter, y coordinate, x coordinate, tile bonuses allowed (y/n), is blank (y/n)
 public class Rater {
@@ -27,10 +30,15 @@ public class Rater {
   };
   public static final int[][] LETTER_BONUSES = computeLetterBonuses();
   public static final int[][] WORD_BONUSES = computeWordBonuses();
-  public double[] SMART_LETTER_WEIGHTS = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -8, 0, 0, 0, 0, 0, 0, 0, -25
-  };
+  public static final double[] SMART_LETTER_WEIGHTS =
+      new double[] {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -8, 0, 0, 0, 0, 0, 0, 0, -19
+      };
+  public static final double DUPLICATE_PENALTY_WEIGHT = 1;
   private final Board board;
+  //    public static final double[] SMART_LETTER_WEIGHTS = new double[] {
+  //            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  //    };
 
   public Rater(Board board) {
     this.board = board;
@@ -110,11 +118,62 @@ public class Rater {
     return total;
   }
 
-  public double smartLetterRating(LocatedWord word) {
+  public double smartRating(RatedWord word) {
     double rating = word.blanksUsed * SMART_LETTER_WEIGHTS[SMART_LETTER_WEIGHTS.length - 1];
     for (int i = 0; i < DictEntry.ALPHABET.length; i++) {
       rating += word.placedLetterFrequency[i] * SMART_LETTER_WEIGHTS[i];
     }
+    var boardCopy = board.getCopy();
+
+    boardCopy.makeMove(word);
+    var rackFrequency = WordFinder.getLetterFrequency(boardCopy.getRack());
+    double duplicatePenalty = 0;
+    for (var f : rackFrequency) {
+      if (f > 1) {
+        duplicatePenalty += DUPLICATE_PENALTY_WEIGHT * f * f;
+      }
+    }
+    rating -= duplicatePenalty;
+
+    var rackScores =
+        new double[] {
+          1, 1, 1, 0, 1, 0, 0, 0, 0, -5, 0, 0, 0, 0, 1, 0, -5, 1, 1, 1, 0, 0, 0, 10, 0, 10
+        };
+    double rackCommonLettersBonus = 0;
+    for (var c : boardCopy.getRack()) {
+      if (Character.isAlphabetic(c)) {
+        rackCommonLettersBonus += rackScores[Character.getNumericValue(c) - 10];
+      } else if (c == '_') {
+        rackCommonLettersBonus += 1;
+      }
+    }
+    rating += rackCommonLettersBonus * 1;
+
+    // Calculate the bag from the currently known tiles
+    var bag = boardCopy.computeBag();
+
+    // Set seed so consistent upon same conditions
+    var rng = new Random(word.string.hashCode() ^ (int) rating ^ bag.size());
+
+    // Simulate random opponent turns to evaluate how well the move counters the opponent
+    double opponentAvgRating = 1; // Start at 1 to avoid potential div/0 later
+    int opponentSimCount = 5;
+    for (int i = 0; i < opponentSimCount; i++) {
+      var opponentRack = new char[Board.RACK_CAPACITY];
+      Collections.shuffle(bag, rng);
+      for (int j = 0; j < Board.RACK_CAPACITY && j < bag.size(); j++) {
+        opponentRack[j] = bag.get(j);
+      }
+      var opponentBoard = boardCopy.getCopy();
+      opponentBoard.setRack(opponentRack);
+      var opponentsWord = opponentBoard.findHighestScoringWord();
+      if (opponentsWord != null) {
+        opponentAvgRating += opponentsWord.getRating();
+      }
+    }
+    opponentAvgRating /= opponentSimCount; // Average
+    rating += (word.getRating() - opponentAvgRating);
+
     return rating;
   }
 

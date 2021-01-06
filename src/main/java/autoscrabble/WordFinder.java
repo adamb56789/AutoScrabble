@@ -17,13 +17,13 @@ public class WordFinder {
   }
 
   public static int[] getLetterFrequency(char[] string) {
-    int[] rackLetterFrequency = new int[DictEntry.ALPHABET.length];
+    int[] frequency = new int[DictEntry.ALPHABET.length];
     for (char c : string) {
       if (Character.isAlphabetic(c) && Character.isUpperCase(c)) {
-        rackLetterFrequency[Character.getNumericValue(c) - 10]++;
+        frequency[Character.getNumericValue(c) - 10]++;
       }
     }
-    return rackLetterFrequency;
+    return frequency;
   }
 
   public boolean isWord(String s) {
@@ -43,7 +43,7 @@ public class WordFinder {
     int[] rackFrequency = getLetterFrequency(rack);
     boolean lineHasBlanks = !line.string.equals(lineUpper);
     return dictionary.stream()
-        //                .parallel()
+//                        .parallel()
         // Preliminarily filtering out words that will always fail to save time TODO measure speedup
         .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask, firstMove))
         // Get all words that could fit on the given line
@@ -189,7 +189,8 @@ public class WordFinder {
           for (int i = 0; i < placedLetterFrequency.length; i++) {
             if (placedLetterFrequency[i] > rackLetterFrequency[i]) {
               blankRequirements[i] = placedLetterFrequency[i] - rackLetterFrequency[i];
-              placedLetterFrequency[i]--; // If we use a blank don't record it here
+              placedLetterFrequency[i] -=
+                  blankRequirements[i]; // If we use a blank don't record it here
             } else {
               blankRequirements[i] = 0;
             }
@@ -201,4 +202,5 @@ public class WordFinder {
     }
     return list;
   }
+
 }
