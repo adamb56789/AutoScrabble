@@ -172,7 +172,8 @@ public class Rater {
       }
     }
     opponentAvgRating /= opponentSimCount; // Average
-    rating += (word.getRating() - opponentAvgRating);
+    // players-1 because counts less if our move only affects the next player
+    rating += (word.getRating() - opponentAvgRating) / (App.PLAYER_COUNT - 1);
 
     return rating;
   }

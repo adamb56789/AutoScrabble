@@ -200,46 +200,12 @@ public class Board {
   public RatedWord findHighestScoringWord() {
     var rater = new Rater(this);
 
-    return IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-//        .parallel()
-        .mapToObj(
-            i -> {
-              String line = getLines(board).get(i);
-              // Get a list of possible words
-              Direction direction = i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
-              int index = i < board.length ? i : i - board.length;
-              return wordFinder.getWords(this, new Line(line, direction, index), rack);
-            })
-        .filter(Objects::nonNull) // Remove any lines that were skipped
-        .flatMap(List::stream) // Merge lists from each line
-        .filter(this::moveIsValid)
-        .map(word -> word.getRatedWord(rater))
-        .max(Comparator.comparingDouble(RatedWord::getRating))
-        .orElse(null);
-  }
-
-  public RatedWord findBestWord() {
-    long startTime = System.currentTimeMillis();
-    var rater = new Rater(this);
-
-    // If the board is invalid display an error
-    if (!linesAreValid(getLines(board))) {
-      userMessage = "Current board not valid";
-      return null;
-    }
-    // Find all possible words that fit in the line
-    var words =
+    var bestWord =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-            //            .parallel()
+            .parallel()
             .mapToObj(
                 i -> {
                   String line = getLines(board).get(i);
-                  // If this is the first move then the line must go through the centre
-                  // If not also skip if the line is blank
-                  if (!gameStarted && i != SIZE / 2 && i != SIZE + SIZE / 2
-                      || gameStarted && line.isBlank()) {
-                    return null;
-                  }
                   // Get a list of possible words
                   Direction direction =
                       i < board.length ? Direction.HORIZONTAL : Direction.VERTICAL;
@@ -248,38 +214,16 @@ public class Board {
                 })
             .filter(Objects::nonNull) // Remove any lines that were skipped
             .flatMap(List::stream) // Merge lists from each line
-            .map(word -> word.getRatedWord(rater)) // Rate the words
-            // Sort the words descending by score
-            .sorted(Collections.reverseOrder(Comparator.comparingDouble(RatedWord::getRating)))
-            .collect(Collectors.toList());
-
-    // Get the first one that is valid
-    RatedWord bestWord = null;
-    for (var word : words) {
-      if (moveIsValid(word)) {
-        bestWord = word;
-        userMessage =
-            String.format(
-                "Found %s at (%c%d) %s, scoring %s.",
-                word.string,
-                ((char) (word.x + 97)),
-                (15 - word.y),
-                word.isHorizontal ? "horizontally" : "vertically",
-                word.getRating());
-        break;
-      }
-    }
-    if (bestWord == null) {
-      userMessage = "No words found";
-    } else {
-      long finishTime = System.currentTimeMillis();
-      userMessage += String.format("%s %d ms", "in", (finishTime - startTime));
-    }
+            .filter(this::moveIsValid)
+            .map(word -> word.getRatedWord(rater))
+            .max(Comparator.comparingDouble(RatedWord::getRating))
+            .orElse(null);
     gameStarted = true;
     return bestWord;
   }
 
-  public RatedWord findBestWordSmart() {
+  public RatedWord findBestWord() {
+    long startTime = System.currentTimeMillis();
     // If the board is invalid display an error
     if (!linesAreValid(getLines(board))) {
       userMessage = "Current board not valid";
@@ -289,7 +233,7 @@ public class Board {
     // Find all possible words that fit in the line
     var words =
         IntStream.range(0, board.length * 2) // Scan through horizontal then vertical lines
-//            .parallel()
+            .parallel()
             .mapToObj(
                 i -> {
                   String line = getLines(board).get(i);
@@ -317,35 +261,32 @@ public class Board {
       userMessage = "No words found";
       return null;
     }
-    var smartList = new ArrayList<RatedWord>();
-    int max = 20;
-    for (int i = 0; i < words.size() && i < max; i++) {
-      var word = words.get(i);
-      smartList.add(
-          new RatedWord(
-              word,
-              word.x,
-              word.y,
-              word.direction,
-              word.getRating(),
-              word.getRating() + rater.smartRating(word)));
+    for (var w : words) {
+      if (w.getRating() > Math.min(10, words.get(0).getRating() / 2)) {
+        System.out.println(w);
+      }
     }
-    var smartWords =
-        smartList.stream()
-            .sorted(Collections.reverseOrder(Comparator.comparingDouble(RatedWord::getSmartRating)))
-            .collect(Collectors.toList());
-    System.out.println(smartWords);
     System.out.println("Highest score: " + words.get(0));
-    var bestWord = smartWords.get(0);
+    int max = 20;
+    var bestWord =
+        words.stream()
+            .parallel()
+            .limit(max)
+            .map(word -> new RatedWord(word, word.getRating() + rater.smartRating(word)))
+            .max(Comparator.comparingDouble(RatedWord::getSmartRating))
+            .orElse(null);
+
     assert bestWord != null;
     userMessage =
         String.format(
-            "Found %s at (%c%d) %s, scoring %s.",
+            "Found %s at (%c%d) %s, scoring %s in %d ms.",
             bestWord.string,
             ((char) (bestWord.x + 97)),
             (15 - bestWord.y),
             bestWord.isHorizontal ? "horizontally" : "vertically",
-            bestWord.getRating());
+            bestWord.getRating(),
+            (System.currentTimeMillis() - startTime));
+    System.out.println(userMessage);
     gameStarted = true;
     return bestWord;
   }

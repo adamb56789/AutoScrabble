@@ -14,6 +14,12 @@ public class RatedWord extends LocatedWord {
     this.smartRating = smartRating;
   }
 
+  public RatedWord(RatedWord word, double smartRating) {
+    super(word, word.x, word.y, word.direction);
+    rating = word.getRating();
+    this.smartRating = smartRating;
+  }
+
   public double getSmartRating() {
     return smartRating;
   }
@@ -25,6 +31,11 @@ public class RatedWord extends LocatedWord {
   @Override
   public String toString() {
     return String.format(
-        "%s, (%d,%d), %d, %.1f, %d", string, x, y, rating, smartRating, blanksUsed);
+            "%s at (%c%d) %s, scoring %s",
+            string,
+            ((char) (x + 97)),
+            (15 - y),
+            isHorizontal ? "horizontally" : "vertically",
+            getRating());
   }
 }

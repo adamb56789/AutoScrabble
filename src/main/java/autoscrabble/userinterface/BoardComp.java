@@ -203,7 +203,7 @@ public class BoardComp extends JComponent {
     public void actionPerformed(ActionEvent e) {
       getParent().setCursor(new Cursor(Cursor.WAIT_CURSOR));
       boolean gameStarted = board.getGameStarted();
-      var word = board.findBestWordSmart();
+      var word = board.findBestWord();
 
       // Calculate the bag from the currently known tiles
       var bag = board.computeBag();
@@ -262,7 +262,6 @@ public class BoardComp extends JComponent {
     @Override
     public void actionPerformed(ActionEvent e) {
       getParent().setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      boolean gameStarted = board.getGameStarted();
       var word = board.findHighestScoringWord();
 
       if (word != null) {

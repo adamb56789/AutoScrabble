@@ -43,7 +43,7 @@ public class WordFinder {
     int[] rackFrequency = getLetterFrequency(rack);
     boolean lineHasBlanks = !line.string.equals(lineUpper);
     return dictionary.stream()
-//                        .parallel()
+        .parallel()
         // Preliminarily filtering out words that will always fail to save time TODO measure speedup
         .filter(entry -> preliminaryFilter(entry, blankCount, rackMask, lineMask, firstMove))
         // Get all words that could fit on the given line
@@ -202,5 +202,4 @@ public class WordFinder {
     }
     return list;
   }
-
 }
