@@ -2,8 +2,8 @@ package autoscrabble;
 
 public class DictEntry {
   public static final char[] ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
-  private final String word;
   final int alphabetMask;
+  private final String word;
 
   public DictEntry(String word) {
     this.word = word;

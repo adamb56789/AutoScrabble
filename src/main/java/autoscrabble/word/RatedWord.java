@@ -1,6 +1,7 @@
 package autoscrabble.word;
 
 import autoscrabble.Direction;
+import autoscrabble.Rater;
 
 /** A word with a rating as well as location and direction. */
 public class RatedWord extends LocatedWord {
@@ -14,10 +15,11 @@ public class RatedWord extends LocatedWord {
     this.smartRating = smartRating;
   }
 
-  public RatedWord(RatedWord word, double smartRating) {
+  /** Create word and calculate a smart rating. */
+  public RatedWord(RatedWord word, Rater rater) {
     super(word, word.x, word.y, word.direction);
     rating = word.getRating();
-    this.smartRating = smartRating;
+    this.smartRating = rating + rater.smartRating(word);
   }
 
   public double getSmartRating() {
@@ -31,11 +33,11 @@ public class RatedWord extends LocatedWord {
   @Override
   public String toString() {
     return String.format(
-            "%s at (%c%d) %s, scoring %s",
-            string,
-            ((char) (x + 97)),
-            (15 - y),
-            isHorizontal ? "horizontally" : "vertically",
-            getRating());
+        "%s at (%c%d) %s, scoring %s",
+        string,
+        ((char) (x + 97)),
+        (15 - y),
+        isHorizontal ? "horizontally" : "vertically",
+        getRating());
   }
 }

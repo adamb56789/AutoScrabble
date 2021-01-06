@@ -7,7 +7,12 @@ public class Word1D extends Word {
   public final int[] placedLetterFrequency;
   public final int blanksUsed;
 
-  public Word1D(String word, int startIndex, int[] blankRequirements, int blanksUsed, int[] placedLetterFrequency) {
+  public Word1D(
+      String word,
+      int startIndex,
+      int[] blankRequirements,
+      int blanksUsed,
+      int[] placedLetterFrequency) {
     super(word);
     this.startIndex = startIndex;
     this.blankRequirements = blankRequirements;

@@ -3,20 +3,18 @@ package autoscrabble.userinterface;
 import autoscrabble.Board;
 import autoscrabble.Direction;
 import autoscrabble.Rater;
+import autoscrabble.word.RatedWord;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Random;
 
 public class BoardComp extends JComponent {
   public static final int SQUARE_SIZE = 40;
 
-  private static final Font FONT_MEDIUM = new Font("Arial", Font.PLAIN, 18);
+  private static final Font FONT_MEDIUM = new Font("Arial", Font.PLAIN, 16);
   private static final Font FONT_SMALL = new Font("Arial", Font.PLAIN, 12);
   private static final Color BOARD_BACKGROUND_COLOUR = Color.decode("#ECE8D9");
   private static final Color TEXT_COLOUR = Color.black;
@@ -54,6 +52,7 @@ public class BoardComp extends JComponent {
   private int xSelection = 0;
   private int ySelection = 0;
   private Direction typingDirection = null;
+  private RatedWord stagedWord = null;
 
   public BoardComp(Board board) {
     super();
@@ -198,63 +197,27 @@ public class BoardComp extends JComponent {
     return new FindWordFast();
   }
 
+  public void resetStagedWord() {
+    stagedWord = null;
+  }
+
   private class FindWordAction extends AbstractAction {
     @Override
     public void actionPerformed(ActionEvent e) {
-      getParent().setCursor(new Cursor(Cursor.WAIT_CURSOR));
-      boolean gameStarted = board.getGameStarted();
-      var word = board.findBestWord();
-
-      // Calculate the bag from the currently known tiles
-      var bag = board.computeBag();
-      for (var c : board.getRack()) {
-        if (Character.isAlphabetic(c)) {
-          bag.add(c);
-        }
-      }
-      if (word == null || bag.size() > 14) {
-        var rng = new Random(String.valueOf(board.getRack()).hashCode());
-
-        var bagCopy = new ArrayList<>(bag);
-
-        double avgRating = 1; // Start at 1 to avoid potential div/0 later
-        int simCount = 10;
-        boolean foundWord = false;
-        for (int i = 0; i < simCount; i++) {
-          var newRack = new char[Board.RACK_CAPACITY];
-          Collections.shuffle(bagCopy, rng);
-          for (int j = 0; j < Board.RACK_CAPACITY && j < bagCopy.size(); j++) {
-            newRack[j] = bagCopy.get(j);
-          }
-          var boardCopy = board.getCopy();
-          boardCopy.setGameStarted(gameStarted);
-          boardCopy.setRack(newRack);
-          var newWord = boardCopy.findHighestScoringWord();
-          if (newWord != null) {
-            foundWord = true;
-            avgRating += newWord.getRating();
-          }
-        }
-        if (foundWord) {
-          avgRating /= simCount; // Average
-          if (word == null) {
-            board.setUserMessage("No words found, try tile exchange");
-          } else {
-            board.setUserMessage(
-                board.getUserMessage() + " Exchange value: " + (int) (avgRating - word.getRating()));
-          }
-        }
-      }
-
-      if (word != null) {
+      if (stagedWord == null) {
+        getParent().setCursor(new Cursor(Cursor.WAIT_CURSOR));
+        stagedWord = board.runFinder();
+        getParent().setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+        getParent().repaint();
+      } else {
         requestFocus(); // Get focus to display word start location
-        board.makeMove(word);
-        xSelection = word.x;
-        ySelection = word.y;
+        board.makeMove(stagedWord);
+        board.setUserMessage("");
+        xSelection = stagedWord.x;
+        ySelection = stagedWord.y;
         typingDirection = null;
+        stagedWord = null;
       }
-      getParent().setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-      getParent().repaint();
     }
   }
 
@@ -287,6 +250,7 @@ public class BoardComp extends JComponent {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+      stagedWord = null;
       xSelection = Math.floorMod(xSelection + x, Board.SIZE);
       ySelection = Math.floorMod(ySelection + y, Board.SIZE);
       if (x == 0) {
@@ -301,6 +265,7 @@ public class BoardComp extends JComponent {
   private class LetterKeyListener extends KeyAdapter {
     @Override
     public void keyTyped(KeyEvent e) {
+      stagedWord = null;
       char keyChar = e.getKeyChar();
       if (Character.isAlphabetic(keyChar)) {
         if (typingDirection == null
@@ -345,6 +310,7 @@ public class BoardComp extends JComponent {
   private class SelectTileMouseListener extends MouseAdapter {
     @Override
     public void mousePressed(MouseEvent e) {
+      stagedWord = null;
       typingDirection = null;
       requestFocus(); // Focus on click
 

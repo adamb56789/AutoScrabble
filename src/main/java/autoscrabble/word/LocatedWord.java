@@ -11,7 +11,12 @@ public class LocatedWord extends Word1D {
   public final boolean isHorizontal;
 
   public LocatedWord(Word1D word, int x, int y, Direction direction) {
-    super(word.string, word.startIndex, word.blankRequirements, word.blanksUsed, word.placedLetterFrequency);
+    super(
+        word.string,
+        word.startIndex,
+        word.blankRequirements,
+        word.blanksUsed,
+        word.placedLetterFrequency);
     this.x = x;
     this.y = y;
     this.direction = direction;
